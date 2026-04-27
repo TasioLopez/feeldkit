@@ -1,0 +1,165 @@
+openapi: 3.0.3
+info:
+  title: FeeldKit API
+  version: "1"
+  description: |
+    Field normalization and catalog HTTP API. All routes require `x-api-key` unless noted in deployment docs.
+servers:
+  - url: https://feeldkit.dev/api/v1
+    description: Example production host
+paths:
+  /normalize:
+    post:
+      summary: Normalize a single value
+      security: [{ ApiKeyAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [field_key, value]
+              properties:
+                field_key: { type: string }
+                value: { type: string }
+                context: { type: object, additionalProperties: true }
+      responses:
+        "200": { description: Normalization result }
+        "401": { description: Missing or invalid API key }
+        "429": { description: Rate limited }
+  /normalize/batch:
+    post:
+      summary: Normalize many values
+      security: [{ ApiKeyAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [field_key, value]
+                    properties:
+                      field_key: { type: string }
+                      value: { type: string }
+                      context: { type: object, additionalProperties: true }
+      responses:
+        "200": { description: Batch results }
+  /validate:
+    post:
+      summary: Validate a value
+      security: [{ ApiKeyAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [field_key, value]
+              properties:
+                field_key: { type: string }
+                value: { type: string }
+                context: { type: object, additionalProperties: true }
+      responses:
+        "200": { description: Validation outcome }
+  /parse:
+    post:
+      summary: Parse a value
+      security: [{ ApiKeyAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [field_key, value]
+              properties:
+                field_key: { type: string }
+                value: { type: string }
+                context: { type: object, additionalProperties: true }
+      responses:
+        "200": { description: Parse result }
+  /crosswalk:
+    get:
+      summary: Crosswalk between field types
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string }
+          required: true
+        - in: query
+          name: to
+          schema: { type: string }
+          required: true
+        - in: query
+          name: code
+          schema: { type: string }
+          required: true
+      responses:
+        "200": { description: Crosswalk match }
+  /packs:
+    get:
+      summary: List field packs
+      security: [{ ApiKeyAuth: [] }]
+      responses:
+        "200": { description: Pack list }
+  /field-types:
+    get:
+      summary: List field types
+      security: [{ ApiKeyAuth: [] }]
+      responses:
+        "200": { description: Field types }
+  /fields/{fieldKey}/search:
+    get:
+      summary: Search values for a field type
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - in: path
+          name: fieldKey
+          schema: { type: string }
+          required: true
+        - in: query
+          name: q
+          schema: { type: string }
+          required: true
+      responses:
+        "200": { description: Search hits }
+  /fields/{fieldKey}/values:
+    get:
+      summary: List values for a field type
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - in: path
+          name: fieldKey
+          schema: { type: string }
+          required: true
+      responses:
+        "200": { description: Values }
+  /suggest:
+    post:
+      summary: Suggest normalization (alias of normalize pipeline)
+      security: [{ ApiKeyAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [field_key, value]
+              properties:
+                field_key: { type: string }
+                value: { type: string }
+      responses:
+        "200": { description: Suggestion }
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
