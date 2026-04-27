@@ -1,6 +1,15 @@
+import Link from "next/link";
+import type { Metadata } from "next";
+import { Activity, Boxes, Database, KeyRound, ListTodo } from "lucide-react";
 import { getFieldRepository } from "@/lib/repositories/get-field-repository";
 import { listReviewQueue } from "@/lib/matching/review-queue";
 import { getMemoryUsageEvents } from "@/lib/telemetry/usage-events";
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+
+export const metadata: Metadata = {
+  title: "Overview | FeeldKit",
+  description: "Dashboard overview for packs, field types, and usage.",
+};
 
 export default async function DashboardPage() {
   const repo = getFieldRepository();
@@ -15,23 +24,72 @@ export default async function DashboardPage() {
   const usage = getMemoryUsageEvents().length;
 
   const cards = [
-    { label: "Field packs", value: packs },
-    { label: "Field types", value: fieldTypes },
-    { label: "Values", value: values },
-    { label: "Pending reviews", value: pendingReviews },
-    { label: "API usage events (memory)", value: usage },
-  ];
+    {
+      label: "Field packs",
+      value: packs,
+      description: "Installed normalization packs",
+      href: "/dashboard/packs",
+      icon: Boxes,
+    },
+    {
+      label: "Field types",
+      value: fieldTypes,
+      description: "Distinct field definitions",
+      href: "/dashboard/packs",
+      icon: Database,
+    },
+    {
+      label: "Values",
+      value: values,
+      description: "Canonical values across types",
+      href: "/dashboard/packs",
+      icon: Activity,
+    },
+    {
+      label: "Pending reviews",
+      value: pendingReviews,
+      description: "Low-confidence items to triage",
+      href: "/dashboard/reviews",
+      icon: ListTodo,
+    },
+    {
+      label: "API usage (memory)",
+      value: usage,
+      description: "Events recorded in this process",
+      href: "/dashboard/api-keys",
+      icon: KeyRound,
+    },
+  ] as const;
 
   return (
-    <div>
-      <h1 className="text-2xl font-semibold">Overview</h1>
-      <div className="mt-6 grid gap-4 md:grid-cols-5">
-        {cards.map((card) => (
-          <section key={card.label} className="rounded-lg border border-slate-200 bg-white p-4">
-            <p className="text-sm text-slate-500">{card.label}</p>
-            <p className="mt-2 text-2xl font-semibold">{card.value}</p>
-          </section>
-        ))}
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Overview</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Key metrics for your FeeldKit workspace.</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        {cards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <Link key={card.label} href={card.href} className="group block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+              <Card className="h-full border-border/80 transition-shadow group-hover:shadow-md">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">{card.label}</CardTitle>
+                    <span className="flex size-8 items-center justify-center rounded-md bg-muted text-foreground">
+                      <Icon className="size-4" aria-hidden />
+                    </span>
+                  </div>
+                  <p className="text-3xl font-semibold tabular-nums text-foreground">{card.value}</p>
+                  <CardDescription className="text-xs leading-relaxed">{card.description}</CardDescription>
+                </CardHeader>
+                <CardFooter className="pt-0">
+                  <span className="text-xs font-medium text-primary group-hover:underline">View details</span>
+                </CardFooter>
+              </Card>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { MarketingChrome } from "@/components/marketing-chrome";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata: Metadata = {
   title: "API documentation | FeeldKit",
@@ -8,49 +10,62 @@ export const metadata: Metadata = {
 
 export default function PublicDocsPage() {
   return (
-    <div className="min-h-screen bg-slate-950 px-6 py-12 text-slate-100">
-      <div className="mx-auto max-w-3xl">
-        <p className="text-sm text-teal-300">
-          <Link href="/" className="hover:underline">
-            Home
-          </Link>
+    <MarketingChrome>
+      <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">FeeldKit API</h1>
+        <p className="mt-4 text-muted-foreground leading-relaxed">
+          All endpoints are under{" "}
+          <code className="rounded-md bg-code px-1.5 py-0.5 font-mono text-sm text-code-foreground">/api/v1</code>. Send{" "}
+          <code className="rounded-md bg-code px-1.5 py-0.5 font-mono text-sm text-code-foreground">x-api-key</code> with a key
+          issued from the admin dashboard (or a development key when{" "}
+          <code className="rounded-md bg-code px-1.5 py-0.5 font-mono text-sm text-code-foreground">ALLOW_DEMO_API_KEY</code> is
+          enabled).
         </p>
-        <h1 className="mt-4 text-3xl font-semibold">FeeldKit API</h1>
-        <p className="mt-4 text-slate-300">
-          All endpoints are under <code className="rounded bg-slate-800 px-1.5 py-0.5 text-sm">/api/v1</code>. Send{" "}
-          <code className="rounded bg-slate-800 px-1.5 py-0.5 text-sm">x-api-key</code> with a key issued from the admin
-          dashboard (or a development key when <code className="text-sm">ALLOW_DEMO_API_KEY</code> is enabled).
-        </p>
-        <h2 className="mt-10 text-lg font-medium text-teal-200">Quick example</h2>
-        <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-900 p-4 text-sm text-slate-200">
-          {`curl -sS -H "x-api-key: YOUR_KEY" \\
+        <h2 className="mt-10 text-lg font-semibold text-foreground">Quick example</h2>
+        <Card className="mt-3 border-border bg-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">cURL</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <pre className="overflow-x-auto rounded-md bg-code p-4 font-mono text-sm text-code-foreground leading-relaxed">
+              {`curl -sS -H "x-api-key: YOUR_KEY" \\
   -H "content-type: application/json" \\
   -d '{"field_key":"countries","value":"NL"}' \\
   https://YOUR_HOST/api/v1/normalize`}
-        </pre>
-        <h2 className="mt-10 text-lg font-medium text-teal-200">Core routes</h2>
-        <ul className="mt-3 list-disc space-y-2 pl-6 text-slate-300">
-          <li>
-            <code className="text-slate-200">GET /api/v1/packs</code> — list field packs
+            </pre>
+          </CardContent>
+        </Card>
+        <h2 className="mt-10 text-lg font-semibold text-foreground">Core routes</h2>
+        <ul className="mt-4 space-y-3 text-muted-foreground">
+          <li className="flex flex-wrap items-baseline gap-2">
+            <code className="rounded-md bg-code px-1.5 py-0.5 font-mono text-sm text-code-foreground">GET /api/v1/packs</code>
+            <span className="text-sm">— list field packs</span>
           </li>
-          <li>
-            <code className="text-slate-200">GET /api/v1/field-types</code> — list field types
+          <li className="flex flex-wrap items-baseline gap-2">
+            <code className="rounded-md bg-code px-1.5 py-0.5 font-mono text-sm text-code-foreground">GET /api/v1/field-types</code>
+            <span className="text-sm">— list field types</span>
           </li>
-          <li>
-            <code className="text-slate-200">POST /api/v1/normalize</code> — normalize a value
+          <li className="flex flex-wrap items-baseline gap-2">
+            <code className="rounded-md bg-code px-1.5 py-0.5 font-mono text-sm text-code-foreground">POST /api/v1/normalize</code>
+            <span className="text-sm">— normalize a value</span>
           </li>
-          <li>
-            <code className="text-slate-200">POST /api/v1/validate</code>, <code className="text-slate-200">POST /api/v1/parse</code>
+          <li className="flex flex-wrap items-baseline gap-2">
+            <code className="rounded-md bg-code px-1.5 py-0.5 font-mono text-sm text-code-foreground">POST /api/v1/validate</code>,{" "}
+            <code className="rounded-md bg-code px-1.5 py-0.5 font-mono text-sm text-code-foreground">POST /api/v1/parse</code>
           </li>
-          <li>
-            <code className="text-slate-200">GET /api/v1/crosswalk</code> — crosswalk lookup
+          <li className="flex flex-wrap items-baseline gap-2">
+            <code className="rounded-md bg-code px-1.5 py-0.5 font-mono text-sm text-code-foreground">GET /api/v1/crosswalk</code>
+            <span className="text-sm">— crosswalk lookup</span>
           </li>
         </ul>
-        <p className="mt-8 text-sm text-slate-500">
-          OpenAPI: <Link href="/openapi.yaml" className="text-teal-400 hover:underline">/openapi.yaml</Link>. Deployment
-          checklist: <code className="text-slate-400">docs/DEPLOYMENT.md</code> in the repo.
+        <p className="mt-10 text-sm text-muted-foreground">
+          OpenAPI:{" "}
+          <Link href="/openapi.yaml" className="font-medium text-primary hover:underline">
+            /openapi.yaml
+          </Link>
+          . Deployment checklist: <span className="font-mono text-foreground/80">docs/DEPLOYMENT.md</span> in the repo.
         </p>
       </div>
-    </div>
+    </MarketingChrome>
   );
 }

@@ -2,6 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
+import { Loader2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type Props = {
   nextPath?: string;
@@ -51,46 +56,60 @@ export function LoginForm({ nextPath, error, supabaseConfigured, siteUrl }: Prop
 
   if (!supabaseConfigured || !supabase) {
     return (
-      <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        {error === "missing_supabase" || !supabaseConfigured
-          ? "Set NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY to enable admin sign-in."
-          : "Unable to create Supabase client."}
-      </div>
+      <Alert variant="warning" className="mt-2">
+        <AlertTitle>Configuration</AlertTitle>
+        <AlertDescription>
+          {error === "missing_supabase" || !supabaseConfigured
+            ? "Set NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY to enable admin sign-in."
+            : "Unable to create Supabase client."}
+        </AlertDescription>
+      </Alert>
     );
   }
 
   return (
-    <form className="mt-6 space-y-4" onSubmit={onSubmit}>
+    <form className="space-y-4" onSubmit={onSubmit}>
       {error ? (
-        <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-          {error === "auth" && "Sign-in failed. Try again."}
-          {error === "missing_code" && "Missing authorization code."}
-          {error === "missing_supabase" && "Server is missing Supabase configuration."}
-          {!["auth", "missing_code", "missing_supabase"].includes(error) && `Error: ${error}`}
-        </p>
+        <Alert variant="destructive">
+          <AlertTitle>Sign-in</AlertTitle>
+          <AlertDescription>
+            {error === "auth" && "Sign-in failed. Try again."}
+            {error === "missing_code" && "Missing authorization code."}
+            {error === "missing_supabase" && "Server is missing Supabase configuration."}
+            {!["auth", "missing_code", "missing_supabase"].includes(error) && `Error: ${error}`}
+          </AlertDescription>
+        </Alert>
       ) : null}
-      <label className="block text-sm font-medium text-slate-700" htmlFor="email">
-        Email
-      </label>
-      <input
-        id="email"
-        name="email"
-        type="email"
-        required
-        autoComplete="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-        placeholder="you@company.com"
-      />
-      <button
-        type="submit"
-        disabled={status === "sending"}
-        className="w-full rounded-lg bg-teal-600 px-4 py-2 font-medium text-white hover:bg-teal-700 disabled:opacity-60"
-      >
-        {status === "sending" ? "Sending…" : "Send magic link"}
-      </button>
-      {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@company.com"
+        />
+      </div>
+      <Button type="submit" className="w-full" disabled={status === "sending"}>
+        {status === "sending" ? (
+          <>
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+            Sending…
+          </>
+        ) : (
+          "Send magic link"
+        )}
+      </Button>
+      {status === "sent" ? (
+        <Alert variant="default" className="border-primary/30 bg-primary/5">
+          <AlertTitle>Check your inbox</AlertTitle>
+          <AlertDescription>Open the link we sent to finish signing in. You can close this tab after you are done.</AlertDescription>
+        </Alert>
+      ) : null}
+      {message && status !== "sent" ? <p className="text-sm text-muted-foreground">{message}</p> : null}
     </form>
   );
 }

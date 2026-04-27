@@ -1,46 +1,70 @@
 import Link from "next/link";
+import { ArrowRight, GitBranch, ShieldCheck, Sparkles } from "lucide-react";
+import { MarketingChrome } from "@/components/marketing-chrome";
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { env } from "@/lib/config/env";
 
 export default function Home() {
   const showAdminLink = env.NEXT_PUBLIC_SHOW_ADMIN_LINK === true;
 
+  const features = [
+    {
+      title: "Normalize",
+      description: "Messy inputs become canonical values with confidence and metadata.",
+      icon: Sparkles,
+    },
+    {
+      title: "Validate + Parse",
+      description: "Field-specific validation rules and parser interfaces stay reusable.",
+      icon: ShieldCheck,
+    },
+    {
+      title: "Crosswalk",
+      description: "Map values across standards and practical overlays without duplicate logic.",
+      icon: GitBranch,
+    },
+  ];
+
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950 text-slate-100">
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 py-12">
-        <p className="text-sm uppercase tracking-[0.2em] text-teal-300">feeldkit.dev</p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">
+    <MarketingChrome>
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-16 sm:px-6 sm:py-24">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">feeldkit.dev</p>
+        <h1 className="mt-4 max-w-3xl text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl md:text-6xl">
           FeeldKit
-          <span className="block text-teal-300">The field intelligence layer for modern apps.</span>
+          <span className="mt-2 block text-primary">The field intelligence layer for modern apps.</span>
         </h1>
-        <p className="mt-6 max-w-3xl text-slate-300">
-          Standardize countries, industries, jobs, company bands, technologies, intent topics, events, and other recurring
-          fields through one reusable API and TypeScript SDK.
+        <p className="mt-6 max-w-2xl text-pretty text-lg text-muted-foreground">
+          Standardize countries, industries, jobs, company bands, technologies, intent topics, events, and other recurring fields
+          through one reusable API and TypeScript SDK.
         </p>
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-            <p className="font-medium">Normalize</p>
-            <p className="mt-2 text-sm text-slate-300">Messy inputs become canonical values with confidence and metadata.</p>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-            <p className="font-medium">Validate + Parse</p>
-            <p className="mt-2 text-sm text-slate-300">Field-specific validation rules and parser interfaces stay reusable.</p>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-            <p className="font-medium">Crosswalk</p>
-            <p className="mt-2 text-sm text-slate-300">Map values across standards and practical overlays without duplicate logic.</p>
-          </div>
-        </div>
-        <div className="mt-8 flex flex-wrap gap-3 text-sm">
+        <div className="mt-10 flex flex-wrap gap-3">
           {showAdminLink ? (
-            <Link className="rounded-lg bg-teal-400 px-4 py-2 font-medium text-slate-950" href="/dashboard">
-              Open Dashboard
-            </Link>
+            <Button asChild size="lg">
+              <Link href="/dashboard">
+                Open dashboard
+                <ArrowRight className="size-4" aria-hidden />
+              </Link>
+            </Button>
           ) : null}
-          <Link className="rounded-lg border border-slate-700 px-4 py-2 text-slate-200" href="/docs">
-            API documentation
-          </Link>
+          <Button asChild variant="outline" size="lg">
+            <Link href="/docs">API documentation</Link>
+          </Button>
+        </div>
+        <div className="mt-20 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {features.map(({ title, description, icon: Icon }) => (
+            <Card key={title} className="border-border/80 shadow-md transition-shadow hover:shadow-lg">
+              <CardHeader>
+                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                  <Icon className="size-5" aria-hidden />
+                </div>
+                <CardTitle className="text-base">{title}</CardTitle>
+                <CardDescription className="text-sm leading-relaxed">{description}</CardDescription>
+              </CardHeader>
+            </Card>
+          ))}
         </div>
       </main>
-    </div>
+    </MarketingChrome>
   );
 }
