@@ -12,9 +12,17 @@ function hostMatches(request: NextRequest): boolean {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const isAdminHost = hostMatches(request);
+
+  // Keep admin domain focused on auth/dashboard flows.
+  if (env.ADMIN_HOST && isAdminHost && pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
 
   if (pathname.startsWith("/dashboard") || pathname.startsWith("/login")) {
-    if (!hostMatches(request)) {
+    if (!isAdminHost) {
       return new NextResponse(null, { status: 404 });
     }
   }
@@ -40,5 +48,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login"],
+  matcher: ["/", "/dashboard/:path*", "/login"],
 };
