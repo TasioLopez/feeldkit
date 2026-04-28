@@ -26,7 +26,14 @@ export default function DashboardReviewsPage() {
         title="Review queue"
         description="Low confidence and unmatched mappings are listed here for triage."
       />
-      <DataToolbar placeholder="Filter by field or input (UI scaffold)" />
+      <DataToolbar
+        placeholder="Filter by field or input (UI scaffold)"
+        rightSlot={
+          <span className="rounded-full border border-stroke-soft bg-surface-panel px-3 py-1 text-xs text-muted-foreground">
+            {reviews.length} pending
+          </span>
+        }
+      />
       <div className="space-y-3">
         {reviews.length === 0 ? (
           <EmptyState title="All clear" description="No pending reviews right now." />

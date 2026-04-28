@@ -6,7 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CTASection } from "@/components/sections/cta-section";
 import { FeatureGrid } from "@/components/sections/feature-grid";
 import { HeroSection } from "@/components/sections/hero-section";
+import { HowItWorks } from "@/components/sections/how-it-works";
 import { TrustStrip } from "@/components/sections/trust-strip";
+import { UseCaseBands } from "@/components/sections/use-case-bands";
 import { env } from "@/lib/config/env";
 
 export default function Home() {
@@ -37,7 +39,7 @@ export default function Home() {
 
   return (
     <MarketingChrome>
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-4 py-8 sm:px-6 sm:py-12">
         <HeroSection
           eyebrow="feeldkit.dev"
           title="FeeldKit"
@@ -47,12 +49,15 @@ export default function Home() {
         />
 
         <TrustStrip />
+        <HowItWorks />
+
+        <UseCaseBands />
 
         <section className="space-y-4">
           <div className="max-w-2xl">
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground">Build cleaner pipelines with one field layer</h2>
+            <h2 className="section-title text-3xl font-semibold text-foreground">Build cleaner pipelines with one field layer</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Replace duplicated field parsing logic across forms, imports, ETL jobs, and enrichment flows.
+              Replace duplicated field parsing logic across forms, imports, ETL jobs, and enrichment flows with one consistent API.
             </p>
           </div>
           <FeatureGrid items={features} />
@@ -73,7 +78,7 @@ export default function Home() {
               desc: "Pack-based architecture keeps normalization logic reusable between teams and products.",
             },
           ].map((item) => (
-            <Card key={item.title} variant="elevated">
+            <Card key={item.title} variant="panel" className="hover-lift">
               <CardHeader>
                 <CardTitle className="text-base">{item.title}</CardTitle>
                 <CardDescription>{item.desc}</CardDescription>

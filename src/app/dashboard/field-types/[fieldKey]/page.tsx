@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getFieldRepository } from "@/lib/repositories/get-field-repository";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { SectionPanel } from "@/components/dashboard/section-panel";
+import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Layers } from "lucide-react";
@@ -49,8 +51,13 @@ export default async function FieldTypeDetailPage({ params }: Props) {
         title={type.name}
         description={`${type.key} · ${values.length} values · ${aliases.length} aliases`}
         actions={
-          <div className="flex size-10 items-center justify-center rounded-lg border border-brand/20 bg-brand-soft/60 text-brand-strong">
-            <Layers className="size-5" aria-hidden />
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex size-10 items-center justify-center rounded-lg border border-brand/20 bg-brand-soft/60 text-brand-strong">
+              <Layers className="size-5" aria-hidden />
+            </div>
+            <Button asChild size="xs" variant="tonal" className="rounded-full">
+              <Link href="/dashboard/packs">Back</Link>
+            </Button>
           </div>
         }
       />

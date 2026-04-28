@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ExternalLink, FileCode2 } from "lucide-react";
+import { ExternalLink, FileCode2, Rocket } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ export default function DashboardDocsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Developer docs" description="HTTP examples and links to the public reference." />
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
         <Card variant="feature">
           <CardHeader>
             <div className="flex size-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
@@ -32,7 +32,23 @@ export default function DashboardDocsPage() {
             </pre>
           </CardContent>
         </Card>
-        <Card variant="elevated">
+        <div className="space-y-4">
+          <Card variant="panel">
+            <CardHeader>
+              <div className="flex size-10 items-center justify-center rounded-lg border border-brand/20 bg-brand-soft/60 text-brand-strong">
+                <Rocket className="size-5" />
+              </div>
+              <CardTitle className="text-base">Operator quick start</CardTitle>
+              <CardDescription>Recommended workflow for a safe production setup.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm text-muted-foreground">
+              <p>1. Create dedicated keys per integration.</p>
+              <p>2. Validate key scopes with a canary request.</p>
+              <p>3. Monitor review queue for low-confidence mappings.</p>
+            </CardContent>
+          </Card>
+
+          <Card variant="elevated">
           <CardHeader>
             <CardTitle className="text-base">Reference</CardTitle>
             <CardDescription>Public API docs and machine-readable spec.</CardDescription>
@@ -56,7 +72,8 @@ export default function DashboardDocsPage() {
               </Button>
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
       </div>
     </div>
   );

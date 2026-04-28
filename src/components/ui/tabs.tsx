@@ -25,7 +25,7 @@ export function Tabs({
 
   return (
     <div className={cn("space-y-4", className)}>
-      <div className="inline-flex rounded-lg border border-border bg-muted/40 p-1">
+      <div className="inline-flex rounded-lg border border-stroke-soft bg-surface-panel p-1">
         {items.map((item) => (
           <button
             key={item.id}
@@ -36,7 +36,9 @@ export function Tabs({
               "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               item.disabled && "cursor-not-allowed opacity-50",
-              active === item.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+              active === item.id
+                ? "bg-surface-section text-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
             )}
           >
             {item.label}

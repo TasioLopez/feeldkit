@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Activity, Boxes, Database, KeyRound, ListTodo, Sparkles } from "lucide-react";
+import { Activity, Boxes, Database, KeyRound, ListTodo, Sparkles, TrendingUp } from "lucide-react";
 import { MetricTile } from "@/components/dashboard/metric-tile";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getFieldRepository } from "@/lib/repositories/get-field-repository";
@@ -92,17 +93,40 @@ export default async function DashboardPage() {
         </CardHeader>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {cards.map((card) => (
-          <MetricTile
-            key={card.label}
-            title={card.label}
-            value={card.value}
-            description={card.description}
-            href={card.href}
-            icon={card.icon}
-          />
-        ))}
+      <div className="grid gap-4 lg:grid-cols-[1.5fr_0.5fr]">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {cards.map((card) => (
+            <MetricTile
+              key={card.label}
+              title={card.label}
+              value={card.value}
+              description={card.description}
+              href={card.href}
+              icon={card.icon}
+            />
+          ))}
+        </div>
+        <Card variant="panel" className="h-fit">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Quality pulse</CardTitle>
+              <TrendingUp className="size-4 text-brand-strong" />
+            </div>
+            <CardDescription>High-level indicators for ongoing maintenance.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {[
+              { label: "Review pressure", value: pendingReviews === 0 ? "Low" : "Medium", variant: pendingReviews === 0 ? "success" : "warning" },
+              { label: "Coverage health", value: fieldTypes > 0 ? "Good" : "Needs setup", variant: fieldTypes > 0 ? "success" : "warning" },
+              { label: "Usage activity", value: usage > 0 ? "Active" : "Idle", variant: usage > 0 ? "brand" : "muted" },
+            ].map((row) => (
+              <div key={row.label} className="flex items-center justify-between rounded-lg border border-stroke-soft bg-surface-panel px-3 py-2">
+                <span className="text-xs text-muted-foreground">{row.label}</span>
+                <Badge variant={row.variant as "success" | "warning" | "brand" | "muted"}>{row.value}</Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       </div>
 
       <Card variant="elevated">

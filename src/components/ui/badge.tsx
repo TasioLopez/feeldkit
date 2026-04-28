@@ -2,12 +2,13 @@ import type { HTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
 export type BadgeProps = HTMLAttributes<HTMLDivElement> & {
-  variant?: "default" | "secondary" | "outline" | "success" | "warning" | "destructive" | "muted" | "brand";
+  variant?: "default" | "secondary" | "outline" | "success" | "warning" | "destructive" | "muted" | "brand" | "glow";
 };
 
 const variants: Record<NonNullable<BadgeProps["variant"]>, string> = {
   default: "border-transparent bg-foreground text-background",
   brand: "border-transparent bg-brand-soft text-brand-strong",
+  glow: "border-brand/35 bg-brand-soft/70 text-brand-strong shadow-[0_0_0_1px_color-mix(in_oklab,var(--brand)_20%,transparent)]",
   secondary: "border-transparent bg-secondary text-secondary-foreground",
   outline: "text-foreground border-border",
   success: "border-transparent bg-success/15 text-success",

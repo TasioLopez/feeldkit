@@ -2,14 +2,21 @@ import { forwardRef, type HTMLAttributes, type TdHTMLAttributes, type ThHTMLAttr
 import { cn } from "@/lib/cn";
 
 export const Table = forwardRef<HTMLTableElement, HTMLAttributes<HTMLTableElement>>(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-x-auto rounded-xl border border-border/90 bg-card shadow-sm">
+  <div className="relative w-full overflow-x-auto rounded-xl border border-stroke-soft bg-surface-section shadow-sm">
     <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
   </div>
 ));
 Table.displayName = "Table";
 
 export const TableHeader = forwardRef<HTMLTableSectionElement, HTMLAttributes<HTMLTableSectionElement>>(({ className, ...props }, ref) => (
-  <thead ref={ref} className={cn("sticky top-0 z-10 border-b border-border bg-subtle/95 backdrop-blur-sm [&_tr]:border-0", className)} {...props} />
+  <thead
+    ref={ref}
+    className={cn(
+      "sticky top-0 z-10 border-b border-stroke-soft bg-surface-panel/96 backdrop-blur-sm [&_tr]:border-0",
+      className,
+    )}
+    {...props}
+  />
 ));
 TableHeader.displayName = "TableHeader";
 
@@ -21,7 +28,10 @@ TableBody.displayName = "TableBody";
 export const TableRow = forwardRef<HTMLTableRowElement, HTMLAttributes<HTMLTableRowElement>>(({ className, ...props }, ref) => (
   <tr
     ref={ref}
-    className={cn("border-b border-border/70 transition-colors hover:bg-muted/60 data-[state=selected]:bg-muted", className)}
+    className={cn(
+      "border-b border-stroke-soft/80 transition-[background-color,box-shadow] hover:bg-muted/55 data-[state=selected]:bg-muted",
+      className,
+    )}
     {...props}
   />
 ));

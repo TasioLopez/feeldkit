@@ -11,7 +11,7 @@ export function MarketingChrome({ children, className }: { children: ReactNode; 
 
   return (
     <div className={cn("premium-surface flex min-h-full flex-col bg-background", className)}>
-      <header className="sticky top-0 z-40 border-b border-border/80 bg-card/85 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-stroke-soft/80 bg-surface-section/88 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight text-foreground">
             <span className="flex size-8 items-center justify-center rounded-lg border border-brand/20 bg-brand-soft text-brand-strong shadow-sm">
@@ -19,10 +19,10 @@ export function MarketingChrome({ children, className }: { children: ReactNode; 
             </span>
             <span>FeeldKit</span>
           </Link>
-          <nav className="flex items-center gap-2">
+          <nav className="flex items-center gap-1">
             <Link
               href="/docs"
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
             >
               <BookOpen className="size-4" aria-hidden />
               <span className="hidden sm:inline">Docs</span>

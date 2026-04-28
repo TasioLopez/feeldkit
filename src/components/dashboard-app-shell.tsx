@@ -47,10 +47,10 @@ function NavLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
     <Link
       href={item.href}
       className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-[background-color,color,border-color] duration-150",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-brand/15"
+          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-brand/20"
           : "text-sidebar-foreground/80 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
         collapsed && "justify-center px-2",
       )}
@@ -114,6 +114,12 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
         <NavSection title="Data" items={dataNav} collapsed={collapsed} />
         <NavSection title="Operations" items={opsNav} collapsed={collapsed} />
         <NavSection title="Platform" items={platformNav} collapsed={collapsed} />
+        {!collapsed ? (
+          <div className="rounded-lg border border-sidebar-border bg-sidebar-accent/50 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Status</p>
+            <p className="mt-1 text-xs text-sidebar-foreground/80">Schema + routes healthy</p>
+          </div>
+        ) : null}
       </nav>
       <div className="border-t border-sidebar-border bg-sidebar p-3">
         <Button
@@ -142,7 +148,7 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
   );
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
+    <div className="flex min-h-screen bg-surface-canvas text-foreground">
       {/* Desktop sidebar */}
       <aside
         className={cn(
@@ -164,7 +170,7 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
       />
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-sidebar-border bg-sidebar shadow-lg transition-transform duration-200 ease-out md:hidden",
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-sidebar-border bg-sidebar shadow-xl transition-transform duration-200 ease-out md:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -196,7 +202,7 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/80 bg-card/90 px-4 backdrop-blur-md md:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-stroke-soft bg-surface-section/92 px-4 backdrop-blur-md md:px-6">
           <Button
             type="button"
             variant="ghost"
@@ -212,10 +218,10 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
             <p className="truncate text-sm font-medium text-foreground">{currentLabel}</p>
           </div>
           <div className="hidden items-center gap-2 md:flex">
-            <span className="rounded-full border border-border bg-subtle px-3 py-1 text-xs text-muted-foreground">
+            <span className="rounded-full border border-stroke-soft bg-surface-panel px-3 py-1 text-xs text-muted-foreground">
               Quick search <Kbd>/</Kbd>
             </span>
-            <Button type="button" variant="outline" size="sm" className="rounded-full">
+            <Button type="button" variant="tonal" size="sm" className="rounded-full">
               <ChevronsLeftRight className="size-4" />
               Sync
             </Button>
@@ -224,7 +230,7 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
             <ThemeToggle />
           </div>
         </header>
-        <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">{children}</main>
+        <main className="mx-auto w-full max-w-[1280px] flex-1 p-4 md:p-6">{children}</main>
       </div>
     </div>
   );

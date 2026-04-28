@@ -37,13 +37,27 @@ export default async function DashboardPacksPage() {
         title="Field packs"
         description="Packs group related field types and normalization rules."
         actions={
-          <Button asChild variant="soft" size="sm" className="rounded-full">
-            <Link href="/dashboard/imports">View imports</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="tonal" size="sm" className="rounded-full">
+              <Link href="/dashboard/reviews">Review queue</Link>
+            </Button>
+            <Button asChild variant="soft" size="sm" className="rounded-full">
+              <Link href="/dashboard/imports">View imports</Link>
+            </Button>
+          </div>
         }
       />
 
-      <DataToolbar placeholder="Search packs (UI scaffold)" />
+      <DataToolbar
+        placeholder="Search packs (UI scaffold)"
+        rightSlot={
+          <>
+            <span className="rounded-full border border-stroke-soft bg-surface-panel px-3 py-1 text-xs text-muted-foreground">
+              {packs.length} packs
+            </span>
+          </>
+        }
+      />
 
       {packs.length === 0 ? (
         <EmptyState

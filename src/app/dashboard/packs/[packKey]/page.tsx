@@ -69,11 +69,14 @@ export default async function DashboardPackDetailPage({ params }: Props) {
         title={pack.name}
         description={pack.description}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant={statusVariant(pack.status)}>{pack.status}</Badge>
             <Badge variant="outline" className="font-mono text-[11px]">
               {pack.version}
             </Badge>
+            <Button asChild size="xs" variant="tonal" className="rounded-full">
+              <Link href="/dashboard/packs">Back</Link>
+            </Button>
           </div>
         }
       />

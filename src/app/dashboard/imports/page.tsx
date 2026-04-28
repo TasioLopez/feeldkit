@@ -27,7 +27,14 @@ export default function DashboardImportsPage() {
   return (
     <div className="space-y-5">
       <PageHeader title="Imports" description="Track standard lists and overlays loaded into FeeldKit." />
-      <DataToolbar placeholder="Search import source (UI scaffold)" />
+      <DataToolbar
+        placeholder="Search import source (UI scaffold)"
+        rightSlot={
+          <span className="rounded-full border border-stroke-soft bg-surface-panel px-3 py-1 text-xs text-muted-foreground">
+            {importSources.length} sources
+          </span>
+        }
+      />
       <Card variant="elevated" className="overflow-hidden p-0">
         <CardContent className="p-0">
           <Table>

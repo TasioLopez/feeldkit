@@ -93,6 +93,7 @@ export function LoginForm({ nextPath, error, supabaseConfigured, siteUrl }: Prop
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@company.com"
         />
+        <p className="text-xs text-muted-foreground">Use the email tied to your organization admin profile.</p>
       </div>
       <Button type="submit" variant="brand" className="w-full" disabled={status === "sending"}>
         {status === "sending" ? (
@@ -104,7 +105,7 @@ export function LoginForm({ nextPath, error, supabaseConfigured, siteUrl }: Prop
           "Send magic link"
         )}
       </Button>
-      <div className="rounded-lg border border-border bg-subtle/50 px-3 py-2 text-xs text-muted-foreground">
+      <div className="rounded-lg border border-stroke-soft bg-surface-panel px-3 py-2 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
           <ShieldCheck className="size-3.5 text-brand-strong" />
           Security note
