@@ -1,4 +1,5 @@
 import type { User } from "@supabase/supabase-js";
+import { isAdminEmailAllowed } from "@/lib/auth/admin-allowlist";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
 
 /**
@@ -8,6 +9,10 @@ import { getSupabaseServiceClient } from "@/lib/supabase/server";
 export async function ensureProfileForUser(user: User): Promise<void> {
   const admin = getSupabaseServiceClient();
   if (!admin || !user.id) {
+    return;
+  }
+  if (!isAdminEmailAllowed(user.email)) {
+    console.warn("ensureProfileForUser: denied bootstrap for non-allowlisted email");
     return;
   }
 

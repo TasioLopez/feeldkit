@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 const boolish = (v: string | undefined) => v === "true" || v === "1";
+const parseCsv = (v: string | undefined) =>
+  (v ?? "")
+    .split(",")
+    .map((part) => part.trim().toLowerCase())
+    .filter(Boolean);
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).optional(),
@@ -13,6 +18,10 @@ const envSchema = z.object({
   SENTRY_DSN: z.string().optional(),
   /** If set, browser CORS to `/api/v1/*` is limited to this single origin (e.g. `https://app.example.com`). */
   FEELDKIT_API_CORS_ORIGIN: z.string().optional(),
+  /** Comma-separated allowlist of admin emails (exact match, case-insensitive). */
+  ADMIN_ALLOWED_EMAILS: z.string().optional(),
+  /** Comma-separated allowlist of admin email domains (example.com). */
+  ADMIN_ALLOWED_EMAIL_DOMAINS: z.string().optional(),
 });
 
 const parsed = envSchema.parse({
@@ -25,12 +34,16 @@ const parsed = envSchema.parse({
   PUBLIC_API_HOST: process.env.PUBLIC_API_HOST,
   SENTRY_DSN: process.env.SENTRY_DSN,
   FEELDKIT_API_CORS_ORIGIN: process.env.FEELDKIT_API_CORS_ORIGIN,
+  ADMIN_ALLOWED_EMAILS: process.env.ADMIN_ALLOWED_EMAILS,
+  ADMIN_ALLOWED_EMAIL_DOMAINS: process.env.ADMIN_ALLOWED_EMAIL_DOMAINS,
 });
 
 export const env = {
   ...parsed,
   NEXT_PUBLIC_SHOW_ADMIN_LINK: boolish(process.env.NEXT_PUBLIC_SHOW_ADMIN_LINK),
   ALLOW_DEMO_API_KEY: boolish(process.env.ALLOW_DEMO_API_KEY),
+  ADMIN_ALLOWED_EMAILS_LIST: parseCsv(process.env.ADMIN_ALLOWED_EMAILS),
+  ADMIN_ALLOWED_EMAIL_DOMAINS_LIST: parseCsv(process.env.ADMIN_ALLOWED_EMAIL_DOMAINS),
 };
 
 export function isSupabaseConfigured(): boolean {

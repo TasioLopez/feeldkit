@@ -12,6 +12,8 @@ Use separate Supabase projects (or branches) for **development**, **staging**, a
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | All | Public anon key (browser + middleware) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only | Bypasses RLS for API key verification, seed scripts, profile bootstrap |
 | `NEXT_PUBLIC_SITE_URL` | All | OAuth/magic-link redirect base (must match deployed URL) |
+| `ADMIN_ALLOWED_EMAILS` | Server only | Comma-separated exact emails allowed to access admin login/callback |
+| `ADMIN_ALLOWED_EMAIL_DOMAINS` | Server only | Comma-separated email domains allowed to access admin login/callback |
 
 ## Optional security / routing
 
@@ -35,6 +37,8 @@ The **service role key must only run on the server** (Route Handlers, Server Act
 
 Never prefix service role variables with `NEXT_PUBLIC_`.
 
+If any key was ever committed, shared, or present in public artifacts, rotate it immediately and redeploy.
+
 ## DNS and surfaces (recommended)
 
 - **Marketing:** `www.feeldkit.dev` or apex `feeldkit.dev`
@@ -52,6 +56,36 @@ Order: initial core migration, then `*_rls_hardening.sql`, then any follow-ups.
 ## Edge rate limits
 
 In-process rate limiting in the app is a backstop. For production, add **WAF / rate rules** (e.g. Cloudflare) in front of `api.*` keyed by IP and optionally by API key prefix. See `docs/DEPLOYMENT.md` (this file) and `docs/ARCHITECTURE.md`.
+
+## Security operations runbook
+
+### 1) Rotate Supabase credentials
+1. Open Supabase dashboard -> Project Settings -> API.
+2. Rotate or reissue `service_role` key.
+3. Rotate anon key if there is any chance it leaked.
+4. Update deployment secrets for all environments.
+5. Redeploy and verify old keys are invalid.
+
+### 2) Lock admin to dedicated host
+1. Configure DNS for admin subdomain (e.g. `admin.feeldkit.dev`).
+2. Set `ADMIN_HOST` in production.
+3. Verify `/dashboard` returns 404 when accessed from non-admin hosts.
+
+### 3) Restrict who can sign in
+1. Set `ADMIN_ALLOWED_EMAILS` and/or `ADMIN_ALLOWED_EMAIL_DOMAINS`.
+2. Keep at least one break-glass admin email in the explicit list.
+3. Verify disallowed emails receive `/login?error=unauthorized`.
+
+### 4) Apply migrations safely
+1. Apply SQL migrations in order to target Supabase project.
+2. Confirm `profiles` update protections are active.
+3. Validate non-admin users cannot change profile role/org fields.
+
+### 5) Add edge protections
+1. Add WAF rate limits for `/api/v1/*` by IP.
+2. Add stricter burst limits for `/login` and `/auth/*`.
+3. Enable bot mitigation/challenges where appropriate.
+4. Review 429/403 logs and tune thresholds.
 
 ## CI
 

@@ -1,23 +1,49 @@
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS_PER_WINDOW = 240;
 
-const counters = new Map<string, { count: number; windowStart: number }>();
+type RateLimitCounter = { count: number; windowStart: number };
+
+export interface RateLimitStore {
+  get(key: string): RateLimitCounter | undefined;
+  set(key: string, value: RateLimitCounter): void;
+}
+
+class InMemoryRateLimitStore implements RateLimitStore {
+  private readonly counters = new Map<string, RateLimitCounter>();
+
+  get(key: string): RateLimitCounter | undefined {
+    return this.counters.get(key);
+  }
+
+  set(key: string, value: RateLimitCounter): void {
+    this.counters.set(key, value);
+  }
+}
+
+let store: RateLimitStore = new InMemoryRateLimitStore();
+
+/**
+ * Allows replacing the backing store (e.g. Redis) while preserving in-memory default.
+ */
+export function configureRateLimitStore(nextStore: RateLimitStore): void {
+  store = nextStore;
+}
 
 export function checkRateLimit(key: string): boolean {
   const now = Date.now();
-  const item = counters.get(key);
+  const item = store.get(key);
   if (!item) {
-    counters.set(key, { count: 1, windowStart: now });
+    store.set(key, { count: 1, windowStart: now });
     return true;
   }
   if (now - item.windowStart > WINDOW_MS) {
-    counters.set(key, { count: 1, windowStart: now });
+    store.set(key, { count: 1, windowStart: now });
     return true;
   }
   if (item.count >= MAX_REQUESTS_PER_WINDOW) {
     return false;
   }
   item.count += 1;
-  counters.set(key, item);
+  store.set(key, item);
   return true;
 }

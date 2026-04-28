@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { isAdminEmailAllowed } from "@/lib/auth/admin-allowlist";
 import { ensureProfileForUser } from "@/lib/auth/bootstrap-profile";
 import { env, isSupabaseConfigured } from "@/lib/config/env";
 
@@ -37,6 +38,11 @@ export async function GET(request: Request) {
   const { error, data } = await supabase.auth.exchangeCodeForSession(code);
   if (error || !data.user) {
     return NextResponse.redirect(new URL("/login?error=auth", origin));
+  }
+
+  if (!isAdminEmailAllowed(data.user.email)) {
+    await supabase.auth.signOut();
+    return NextResponse.redirect(new URL("/login?error=unauthorized", origin));
   }
 
   await ensureProfileForUser(data.user);
