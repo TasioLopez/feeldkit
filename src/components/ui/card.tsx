@@ -21,7 +21,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(({ className, variant 
 Card.displayName = "Card";
 
 export const CardHeader = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("flex flex-col gap-1.5 p-6 pb-0", className)} {...props} />
+  <div ref={ref} className={cn("flex flex-col gap-2 p-6 pb-3", className)} {...props} />
 ));
 CardHeader.displayName = "CardHeader";
 
@@ -38,7 +38,7 @@ export const CardDescription = forwardRef<HTMLParagraphElement, HTMLAttributes<H
 CardDescription.displayName = "CardDescription";
 
 export const CardContent = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-6 pt-4", className)} {...props} />
+  <div ref={ref} className={cn("p-6 pt-2", className)} {...props} />
 ));
 CardContent.displayName = "CardContent";
 

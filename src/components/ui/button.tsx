@@ -32,9 +32,9 @@ const variants: Record<NonNullable<ButtonProps["variant"]>, string> = {
 
 const sizes: Record<NonNullable<ButtonProps["size"]>, string> = {
   xs: "h-7 gap-1 rounded-md px-2.5 text-[11px]",
-  sm: "h-8 gap-1.5 rounded-md px-3 text-xs",
+  sm: "h-8 gap-1.5 rounded-md px-3.5 text-xs",
   md: "h-9 gap-2 rounded-md px-4 py-2 text-sm",
-  lg: "h-10 gap-2 rounded-lg px-6 text-sm",
+  lg: "h-10 gap-2 rounded-lg px-6.5 text-sm",
   xl: "h-11 gap-2 rounded-lg px-7 text-base",
   icon: "size-9 rounded-md p-0",
 };
@@ -42,7 +42,7 @@ const sizes: Record<NonNullable<ButtonProps["size"]>, string> = {
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "md", type = "button", disabled, asChild, children, ...rest }, ref) => {
     const classes = cn(
-      "inline-flex items-center justify-center whitespace-nowrap font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-150",
+      "inline-flex items-center justify-center whitespace-nowrap font-medium leading-none transition-[color,background-color,border-color,box-shadow,transform] duration-150",
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
       "disabled:pointer-events-none disabled:opacity-50",
       variant !== "link" && variant !== "pill" && "active:scale-[0.98]",

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { DataToolbar } from "@/components/dashboard/data-toolbar";
+import { Reveal } from "@/components/motion/reveal";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { getFieldRepository } from "@/lib/repositories/get-field-repository";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +33,7 @@ export default async function DashboardPacksPage() {
   }));
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Field packs"
         description="Packs group related field types and normalization rules."
@@ -48,7 +49,8 @@ export default async function DashboardPacksPage() {
         }
       />
 
-      <DataToolbar
+      <Reveal>
+        <DataToolbar
         placeholder="Search packs (UI scaffold)"
         rightSlot={
           <>
@@ -58,9 +60,11 @@ export default async function DashboardPacksPage() {
           </>
         }
       />
+      </Reveal>
 
       {packs.length === 0 ? (
-        <EmptyState
+        <Reveal>
+          <EmptyState
           title="No packs available"
           description="Seed or import packs to see them listed here."
           action={
@@ -69,8 +73,10 @@ export default async function DashboardPacksPage() {
             </Button>
           }
         />
+        </Reveal>
       ) : (
-        <Card variant="elevated" className="overflow-hidden p-0">
+        <Reveal delay={0.08}>
+          <Card variant="elevated" className="overflow-hidden p-0">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -102,6 +108,7 @@ export default async function DashboardPacksPage() {
             </Table>
           </CardContent>
         </Card>
+        </Reveal>
       )}
     </div>
   );

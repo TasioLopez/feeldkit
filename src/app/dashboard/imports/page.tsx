@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DataToolbar } from "@/components/dashboard/data-toolbar";
+import { Reveal } from "@/components/motion/reveal";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,9 +26,10 @@ function statusVariant(status: string): "success" | "warning" | "muted" {
 
 export default function DashboardImportsPage() {
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader title="Imports" description="Track standard lists and overlays loaded into FeeldKit." />
-      <DataToolbar
+      <Reveal>
+        <DataToolbar
         placeholder="Search import source (UI scaffold)"
         rightSlot={
           <span className="rounded-full border border-stroke-soft bg-surface-panel px-3 py-1 text-xs text-muted-foreground">
@@ -35,7 +37,9 @@ export default function DashboardImportsPage() {
           </span>
         }
       />
-      <Card variant="elevated" className="overflow-hidden p-0">
+      </Reveal>
+      <Reveal delay={0.06}>
+        <Card variant="elevated" className="overflow-hidden p-0">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -59,6 +63,7 @@ export default function DashboardImportsPage() {
           </Table>
         </CardContent>
       </Card>
+      </Reveal>
     </div>
   );
 }

@@ -19,7 +19,7 @@ export function HeroSection({
   return (
     <section className="section-shell premium-surface relative overflow-hidden rounded-2xl px-6 py-10 sm:px-8 sm:py-12 lg:px-10">
       <div className="hero-grid pointer-events-none absolute inset-0 opacity-80" />
-      <div className="relative grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="relative grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="max-w-3xl">
           <p className="fade-up text-xs font-semibold uppercase tracking-[0.24em] text-brand-strong">{eyebrow}</p>
           <h1 className="display-title fade-up-delay mt-4 text-balance-tight text-4xl font-semibold text-foreground sm:text-5xl md:text-6xl">
@@ -41,8 +41,16 @@ export function HeroSection({
             </Button>
           </div>
         </div>
-        <div className="fade-up hidden lg:block">
+        <div className="fade-up hidden space-y-3 lg:block">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Input chaos in, canonical value out
+          </p>
           <HeroArtifact />
+          <div className="flex items-center justify-between rounded-xl border border-stroke-soft bg-surface-panel/75 px-3 py-2 text-[11px] text-muted-foreground">
+            <span>Alias detection</span>
+            <span>Crosswalk</span>
+            <span>Confidence scoring</span>
+          </div>
         </div>
       </div>
     </section>

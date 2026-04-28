@@ -105,7 +105,7 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
           {!collapsed ? <span className="truncate text-sidebar-foreground">FeeldKit</span> : null}
         </Link>
       </div>
-      <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-4">
+      <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-4">
         <div className="space-y-1">
           {mainNav.map((item) => (
             <NavLink key={item.href} item={item} collapsed={collapsed} />
@@ -121,7 +121,7 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
           </div>
         ) : null}
       </nav>
-      <div className="border-t border-sidebar-border bg-sidebar p-3">
+      <div className="border-t border-sidebar-border bg-sidebar p-3.5">
         <Button
           type="button"
           variant="ghost"
@@ -218,7 +218,7 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
             <p className="truncate text-sm font-medium text-foreground">{currentLabel}</p>
           </div>
           <div className="hidden items-center gap-2 md:flex">
-            <span className="rounded-full border border-stroke-soft bg-surface-panel px-3 py-1 text-xs text-muted-foreground">
+            <span className="rounded-full border border-stroke-soft bg-surface-panel px-3 py-1.5 text-xs text-muted-foreground">
               Quick search <Kbd>/</Kbd>
             </span>
             <Button type="button" variant="tonal" size="sm" className="rounded-full">
@@ -230,7 +230,7 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
             <ThemeToggle />
           </div>
         </header>
-        <main className="mx-auto w-full max-w-[1280px] flex-1 p-4 md:p-6">{children}</main>
+        <main className="mx-auto w-full max-w-[1280px] flex-1 p-4 md:p-6 md:pt-7">{children}</main>
       </div>
     </div>
   );

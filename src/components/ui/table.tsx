@@ -29,7 +29,7 @@ export const TableRow = forwardRef<HTMLTableRowElement, HTMLAttributes<HTMLTable
   <tr
     ref={ref}
     className={cn(
-      "border-b border-stroke-soft/80 transition-[background-color,box-shadow] hover:bg-muted/55 data-[state=selected]:bg-muted",
+      "border-b border-stroke-soft/80 transition-[background-color,box-shadow] hover:bg-muted/55 data-[state=selected]:bg-muted/90",
       className,
     )}
     {...props}
@@ -47,6 +47,6 @@ export const TableHead = forwardRef<HTMLTableCellElement, ThHTMLAttributes<HTMLT
 TableHead.displayName = "TableHead";
 
 export const TableCell = forwardRef<HTMLTableCellElement, TdHTMLAttributes<HTMLTableCellElement>>(({ className, ...props }, ref) => (
-  <td ref={ref} className={cn("p-4 align-middle [&:has([role=checkbox])]:pr-0", className)} {...props} />
+  <td ref={ref} className={cn("px-4 py-3.5 align-middle [&:has([role=checkbox])]:pr-0", className)} {...props} />
 ));
 TableCell.displayName = "TableCell";

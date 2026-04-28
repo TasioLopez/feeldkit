@@ -39,7 +39,7 @@ export default function Home() {
 
   return (
     <MarketingChrome>
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-4 py-8 sm:px-6 sm:py-12">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-12 px-4 py-8 sm:px-6 sm:py-12 lg:gap-14">
         <HeroSection
           eyebrow="feeldkit.dev"
           title="FeeldKit"
@@ -53,7 +53,7 @@ export default function Home() {
 
         <UseCaseBands />
 
-        <section className="space-y-4">
+        <section className="space-y-5">
           <div className="max-w-2xl">
             <h2 className="section-title text-3xl font-semibold text-foreground">Build cleaner pipelines with one field layer</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
@@ -78,12 +78,12 @@ export default function Home() {
               desc: "Pack-based architecture keeps normalization logic reusable between teams and products.",
             },
           ].map((item) => (
-            <Card key={item.title} variant="panel" className="hover-lift">
+            <Card key={item.title} variant="panel" className="hover-lift h-full">
               <CardHeader>
                 <CardTitle className="text-base">{item.title}</CardTitle>
                 <CardDescription>{item.desc}</CardDescription>
               </CardHeader>
-              <CardContent className="pt-0">
+              <CardContent className="pt-1">
                 <Button asChild variant="link" className="px-0 text-brand-strong">
                   <Link href="/docs">See details</Link>
                 </Button>

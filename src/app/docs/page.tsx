@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Braces, FileText, KeyRound, Route } from "lucide-react";
+import { Reveal } from "@/components/motion/reveal";
 import { MarketingChrome } from "@/components/marketing-chrome";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,9 +30,10 @@ export default function PublicDocsPage() {
 
   return (
     <MarketingChrome>
-      <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-8 sm:px-6 sm:py-12 lg:grid-cols-[0.7fr_1.3fr]">
+      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 sm:px-6 sm:py-12 lg:grid-cols-[0.7fr_1.3fr]">
         <aside className="space-y-4 lg:sticky lg:top-22 lg:self-start">
-          <Card variant="feature">
+          <Reveal>
+            <Card variant="feature">
             <CardHeader>
               <div className="flex size-10 items-center justify-center rounded-lg border border-brand/25 bg-brand-soft/60 text-brand-strong">
                 <FileText className="size-5" />
@@ -52,8 +54,10 @@ export default function PublicDocsPage() {
               ))}
             </CardContent>
           </Card>
+          </Reveal>
 
-          <Card variant="panel">
+          <Reveal delay={0.08}>
+            <Card variant="panel">
             <CardHeader>
               <CardTitle className="text-base">Quick links</CardTitle>
             </CardHeader>
@@ -72,10 +76,12 @@ export default function PublicDocsPage() {
               </Button>
             </CardContent>
           </Card>
+          </Reveal>
         </aside>
 
         <section className="space-y-6">
-          <div className="section-shell rounded-2xl px-6 py-6">
+          <Reveal>
+            <div className="section-shell rounded-2xl px-6 py-6">
             <h1 className="display-title text-4xl font-semibold text-foreground">FeeldKit API</h1>
             <p className="mt-3 max-w-2xl text-pretty leading-relaxed text-muted-foreground">
               All endpoints are under{" "}
@@ -86,8 +92,10 @@ export default function PublicDocsPage() {
               enabled).
             </p>
           </div>
+          </Reveal>
 
-          <Tabs
+          <Reveal delay={0.06}>
+            <Tabs
             defaultValue="first-call"
             items={[
               {
@@ -137,6 +145,7 @@ export default function PublicDocsPage() {
               },
             ]}
           />
+          </Reveal>
         </section>
       </div>
     </MarketingChrome>

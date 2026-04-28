@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Activity, Boxes, Database, KeyRound, ListTodo, Sparkles, TrendingUp } from "lucide-react";
 import { MetricTile } from "@/components/dashboard/metric-tile";
+import { Reveal } from "@/components/motion/reveal";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,7 +67,7 @@ export default async function DashboardPage() {
   ] as const;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <PageHeader
         title="Overview"
         description="Key metrics and quick actions for your FeeldKit workspace."
@@ -77,7 +78,8 @@ export default async function DashboardPage() {
         }
       />
 
-      <Card variant="feature" className="overflow-hidden">
+      <Reveal>
+        <Card variant="feature" className="overflow-hidden">
         <CardHeader className="relative">
           <div className="hero-grid pointer-events-none absolute inset-0 opacity-70" />
           <div className="relative">
@@ -92,8 +94,10 @@ export default async function DashboardPage() {
           </div>
         </CardHeader>
       </Card>
+      </Reveal>
 
-      <div className="grid gap-4 lg:grid-cols-[1.5fr_0.5fr]">
+      <Reveal delay={0.06}>
+        <div className="grid gap-4 lg:grid-cols-[1.5fr_0.5fr]">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {cards.map((card) => (
             <MetricTile
@@ -128,8 +132,10 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+      </Reveal>
 
-      <Card variant="elevated">
+      <Reveal delay={0.1}>
+        <Card variant="elevated">
         <CardHeader>
           <CardTitle className="text-base">Recommended next actions</CardTitle>
           <CardDescription>Keep normalization quality high with a quick weekly routine.</CardDescription>
@@ -150,6 +156,7 @@ export default async function DashboardPage() {
           ))}
         </CardContent>
       </Card>
+      </Reveal>
     </div>
   );
 }
