@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { listReviewQueue } from "@/lib/matching/review-queue";
+import { DataToolbar } from "@/components/dashboard/data-toolbar";
+import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const metadata: Metadata = {
   title: "Review queue | FeeldKit",
@@ -18,22 +21,18 @@ function confidenceVariant(c: number): "success" | "warning" | "destructive" | "
 export default function DashboardReviewsPage() {
   const reviews = listReviewQueue();
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Review queue</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Low confidence and unmatched mappings are listed here for triage.</p>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="Review queue"
+        description="Low confidence and unmatched mappings are listed here for triage."
+      />
+      <DataToolbar placeholder="Filter by field or input (UI scaffold)" />
       <div className="space-y-3">
         {reviews.length === 0 ? (
-          <Card className="border-dashed">
-            <CardHeader>
-              <CardTitle className="text-base">All clear</CardTitle>
-              <CardDescription>No pending reviews right now.</CardDescription>
-            </CardHeader>
-          </Card>
+          <EmptyState title="All clear" description="No pending reviews right now." />
         ) : (
           reviews.map((item) => (
-            <Card key={item.id}>
+            <Card key={item.id} variant="elevated">
               <CardHeader>
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <CardTitle className="text-base font-medium leading-snug">{item.input}</CardTitle>

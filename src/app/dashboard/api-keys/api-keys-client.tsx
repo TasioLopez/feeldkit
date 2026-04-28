@@ -1,14 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Copy, Check } from "lucide-react";
+import { Check, Copy, ShieldAlert } from "lucide-react";
 import { createApiKeyAction, revokeApiKeyAction } from "./actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Kbd } from "@/components/ui/kbd";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Tabs } from "@/components/ui/tabs";
+import { Tooltip } from "@/components/ui/tooltip";
 
 type KeyRow = {
   id: string;
@@ -45,7 +48,7 @@ export function ApiKeysClient({ initialKeys }: { initialKeys: KeyRow[] }) {
   return (
     <div className="space-y-6">
       {plaintext ? (
-        <Alert variant="warning" className="border-amber-500/40">
+        <Alert variant="warning" className="border-amber-500/40 shadow-sm">
           <AlertTitle>Copy this key now</AlertTitle>
           <AlertDescription className="space-y-3">
             <p>It will not be shown again after you leave this page.</p>
@@ -74,7 +77,7 @@ export function ApiKeysClient({ initialKeys }: { initialKeys: KeyRow[] }) {
         </Alert>
       ) : null}
 
-      <Card>
+      <Card variant="elevated">
         <CardHeader>
           <CardTitle className="text-base">Create a key</CardTitle>
         </CardHeader>
@@ -104,7 +107,7 @@ export function ApiKeysClient({ initialKeys }: { initialKeys: KeyRow[] }) {
               <Label htmlFor="keyName">Key name</Label>
               <Input id="keyName" value={name} onChange={(e) => setName(e.target.value)} placeholder="Production n8n" />
             </div>
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" variant="brand" disabled={isPending}>
               Create key
             </Button>
           </form>
@@ -116,69 +119,108 @@ export function ApiKeysClient({ initialKeys }: { initialKeys: KeyRow[] }) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card variant="elevated">
         <CardHeader>
           <CardTitle className="text-base">Your API keys</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          <ul className="divide-y divide-border">
-            {keys.length === 0 ? (
-              <li className="px-6 py-10 text-center text-sm text-muted-foreground">No keys yet. Create one above (requires Supabase and profile).</li>
-            ) : (
-              keys.map((k) => (
-                <li key={k.id} className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0 space-y-1">
-                    <p className="font-medium text-foreground">{k.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Prefix <code className="rounded bg-muted px-1 font-mono text-foreground">{k.key_prefix}…</code> · created{" "}
-                      {new Date(k.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {!k.revoked_at ? (
-                      revokeId === k.id ? (
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xs text-muted-foreground">Revoke this key?</span>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="destructive"
-                            disabled={isPending}
-                            onClick={() => {
-                              startTransition(async () => {
-                                await revokeApiKeyAction(k.id);
-                                setRevokeId(null);
-                                const list = await import("./actions").then((m) => m.listApiKeysForOrganization());
-                                refreshFromServer(list);
-                              });
-                            }}
-                          >
-                            Confirm
-                          </Button>
-                          <Button type="button" size="sm" variant="ghost" onClick={() => setRevokeId(null)}>
-                            Cancel
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="text-destructive hover:bg-destructive/10"
-                          disabled={isPending}
-                          onClick={() => setRevokeId(k.id)}
-                        >
-                          Revoke
-                        </Button>
-                      )
+        <CardContent className="space-y-3 p-4 pt-0">
+          <div className="text-xs text-muted-foreground">
+            Tip: Use one key per workflow and rotate on schedule <Kbd>90d</Kbd>.
+          </div>
+          <Tabs
+            defaultValue="active"
+            items={[
+              {
+                id: "active",
+                label: "Active",
+                content: (
+                  <ul className="divide-y divide-border rounded-lg border border-border bg-card">
+                    {keys.filter((key) => !key.revoked_at).length === 0 ? (
+                      <li className="px-6 py-10 text-center text-sm text-muted-foreground">
+                        No active keys yet. Create one above.
+                      </li>
                     ) : (
-                      <span className="text-sm text-muted-foreground">Revoked</span>
+                      keys
+                        .filter((key) => !key.revoked_at)
+                        .map((k) => (
+                          <li key={k.id} className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0 space-y-1">
+                              <p className="font-medium text-foreground">{k.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Prefix <code className="rounded bg-muted px-1 font-mono text-foreground">{k.key_prefix}…</code> · created{" "}
+                                {new Date(k.created_at).toLocaleString()}
+                              </p>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-2">
+                              {revokeId === k.id ? (
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-xs text-muted-foreground">Revoke this key?</span>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="destructive"
+                                    disabled={isPending}
+                                    onClick={() => {
+                                      startTransition(async () => {
+                                        await revokeApiKeyAction(k.id);
+                                        setRevokeId(null);
+                                        const list = await import("./actions").then((m) => m.listApiKeysForOrganization());
+                                        refreshFromServer(list);
+                                      });
+                                    }}
+                                  >
+                                    Confirm
+                                  </Button>
+                                  <Button type="button" size="sm" variant="ghost" onClick={() => setRevokeId(null)}>
+                                    Cancel
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Tooltip content="Revoked keys cannot be restored">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-destructive hover:bg-destructive/10"
+                                    disabled={isPending}
+                                    onClick={() => setRevokeId(k.id)}
+                                  >
+                                    <ShieldAlert className="size-4" />
+                                    Revoke
+                                  </Button>
+                                </Tooltip>
+                              )}
+                            </div>
+                          </li>
+                        ))
                     )}
-                  </div>
-                </li>
-              ))
-            )}
-          </ul>
+                  </ul>
+                ),
+              },
+              {
+                id: "revoked",
+                label: "Revoked",
+                content: (
+                  <ul className="divide-y divide-border rounded-lg border border-border bg-card">
+                    {keys.filter((key) => key.revoked_at).length === 0 ? (
+                      <li className="px-6 py-8 text-center text-sm text-muted-foreground">No revoked keys.</li>
+                    ) : (
+                      keys
+                        .filter((key) => key.revoked_at)
+                        .map((k) => (
+                          <li key={k.id} className="px-6 py-4">
+                            <p className="font-medium text-foreground">{k.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Prefix <code className="rounded bg-muted px-1 font-mono text-foreground">{k.key_prefix}…</code>
+                            </p>
+                          </li>
+                        ))
+                    )}
+                  </ul>
+                ),
+              },
+            ]}
+          />
         </CardContent>
         <Separator />
         <CardFooter className="text-xs text-muted-foreground">Revoked keys cannot be reactivated.</CardFooter>

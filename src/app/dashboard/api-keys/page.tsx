@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { listApiKeysForOrganization } from "./actions";
 import { ApiKeysClient } from "./api-keys-client";
+import { PageHeader } from "@/components/dashboard/page-header";
 import { env } from "@/lib/config/env";
 import { isSupabaseConfigured } from "@/lib/config/env";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -18,11 +19,8 @@ export default async function DashboardApiKeysPage() {
   const keys = await listApiKeysForOrganization();
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">API keys</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Issue keys with scoped access to the FeeldKit HTTP API.</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader title="API keys" description="Issue keys with scoped access to the FeeldKit HTTP API." />
       {isSupabaseConfigured() ? (
         <ApiKeysClient initialKeys={keys} />
       ) : (
@@ -34,7 +32,7 @@ export default async function DashboardApiKeysPage() {
         </Alert>
       )}
       {(env.NODE_ENV !== "production" || env.ALLOW_DEMO_API_KEY) && (
-        <Card>
+        <Card variant="elevated">
           <CardHeader>
             <CardTitle className="text-base">Demo key</CardTitle>
             <CardDescription>Available when not in production or when ALLOW_DEMO_API_KEY is enabled.</CardDescription>
@@ -44,7 +42,7 @@ export default async function DashboardApiKeysPage() {
           </CardContent>
         </Card>
       )}
-      <Card>
+      <Card variant="elevated">
         <CardHeader>
           <CardTitle className="text-base">Available scopes</CardTitle>
           <CardDescription>Assign the minimum scopes needed for each integration.</CardDescription>

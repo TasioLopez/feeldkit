@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { getFieldRepository } from "@/lib/repositories/get-field-repository";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { SectionPanel } from "@/components/dashboard/section-panel";
+import { CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Layers } from "lucide-react";
 
 interface Props {
@@ -26,12 +29,7 @@ export default async function FieldTypeDetailPage({ params }: Props) {
     return (
       <div className="space-y-6">
         <Breadcrumbs items={[{ label: "Overview", href: "/dashboard" }, { label: "Packs", href: "/dashboard/packs" }, { label: "Not found" }]} />
-        <Card className="border-dashed">
-          <CardHeader>
-            <CardTitle>Field type not found</CardTitle>
-            <CardDescription>No field type matches this key.</CardDescription>
-          </CardHeader>
-        </Card>
+        <EmptyState title="Field type not found" description="No field type matches this key." />
       </div>
     );
   }
@@ -47,23 +45,17 @@ export default async function FieldTypeDetailPage({ params }: Props) {
           { label: type.name },
         ]}
       />
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{type.name}</h1>
-          <p className="mt-1 font-mono text-sm text-muted-foreground">
-            {type.key} · {values.length} values · {aliases.length} aliases
-          </p>
-        </div>
-        <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
-          <Layers className="size-7" aria-hidden />
-        </div>
-      </div>
+      <PageHeader
+        title={type.name}
+        description={`${type.key} · ${values.length} values · ${aliases.length} aliases`}
+        actions={
+          <div className="flex size-10 items-center justify-center rounded-lg border border-brand/20 bg-brand-soft/60 text-brand-strong">
+            <Layers className="size-5" aria-hidden />
+          </div>
+        }
+      />
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle className="text-base">Values</CardTitle>
-            <CardDescription>Canonical labels and keys</CardDescription>
-          </CardHeader>
+        <SectionPanel title="Values" description="Canonical labels and keys">
           <CardContent className="flex-1 overflow-hidden p-0 px-6 pb-6">
             <ul className="max-h-80 space-y-2 overflow-y-auto rounded-md border border-border bg-muted/30 p-3 text-sm">
               {values.map((value) => (
@@ -74,12 +66,8 @@ export default async function FieldTypeDetailPage({ params }: Props) {
               ))}
             </ul>
           </CardContent>
-        </Card>
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle className="text-base">Aliases</CardTitle>
-            <CardDescription>Alternate strings and confidence</CardDescription>
-          </CardHeader>
+        </SectionPanel>
+        <SectionPanel title="Aliases" description="Alternate strings and confidence">
           <CardContent className="flex-1 overflow-hidden p-0 px-6 pb-6">
             <ul className="max-h-80 space-y-2 overflow-y-auto rounded-md border border-border bg-muted/30 p-3 text-sm">
               {aliases.map((entry) => (
@@ -90,7 +78,7 @@ export default async function FieldTypeDetailPage({ params }: Props) {
               ))}
             </ul>
           </CardContent>
-        </Card>
+        </SectionPanel>
       </div>
     </div>
   );

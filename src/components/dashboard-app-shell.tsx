@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import {
   BookOpen,
+  ChevronsLeftRight,
   Database,
   KeyRound,
   LayoutDashboard,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
 import { cn } from "@/lib/cn";
 
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard };
@@ -45,10 +47,10 @@ function NavLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
     <Link
       href={item.href}
       className={cn(
-        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-brand/15"
           : "text-sidebar-foreground/80 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
         collapsed && "justify-center px-2",
       )}
@@ -72,7 +74,7 @@ function NavSection({ title, items, collapsed }: { title: string; items: NavItem
   }
   return (
     <div className="space-y-1">
-      <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
+      <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{title}</p>
       {items.map((item) => (
         <NavLink key={item.href} item={item} collapsed={false} />
       ))}
@@ -83,16 +85,27 @@ function NavSection({ title, items, collapsed }: { title: string; items: NavItem
 export function DashboardAppShell({ userEmail, children }: { userEmail: string | null; children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
+
+  const currentLabel =
+    [...mainNav, ...dataNav, ...opsNav, ...platformNav].find(
+      (item) => pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`)),
+    )?.label ?? "Dashboard";
 
   const sidebarInner = (
     <>
-      <div className="flex h-14 shrink-0 items-center border-b border-sidebar-border px-3">
-        <Link href="/" className={cn("flex items-center gap-2 font-semibold tracking-tight", collapsed && "justify-center w-full")}>
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/20 text-primary">FK</span>
+      <div className="flex h-16 shrink-0 items-center border-b border-sidebar-border px-3">
+        <Link
+          href="/"
+          className={cn("flex items-center gap-2 font-semibold tracking-tight", collapsed && "w-full justify-center")}
+        >
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-brand/20 bg-brand-soft text-brand-strong">
+            FK
+          </span>
           {!collapsed ? <span className="truncate text-sidebar-foreground">FeeldKit</span> : null}
         </Link>
       </div>
-      <nav className="flex flex-1 flex-col gap-6 overflow-y-auto p-3">
+      <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-4">
         <div className="space-y-1">
           {mainNav.map((item) => (
             <NavLink key={item.href} item={item} collapsed={collapsed} />
@@ -102,7 +115,7 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
         <NavSection title="Operations" items={opsNav} collapsed={collapsed} />
         <NavSection title="Platform" items={platformNav} collapsed={collapsed} />
       </nav>
-      <div className="border-t border-sidebar-border p-3">
+      <div className="border-t border-sidebar-border bg-sidebar p-3">
         <Button
           type="button"
           variant="ghost"
@@ -119,8 +132,8 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
             {!collapsed ? userEmail : "·"}
           </p>
         ) : null}
-        <form action="/auth/signout" method="post" className="mt-2">
-          <Button type="submit" variant="outline" size="sm" className={cn("w-full", collapsed && "px-2")}>
+        <form action="/auth/signout" method="post" className="mt-3">
+          <Button type="submit" variant="outline" size="sm" className={cn("w-full rounded-lg", collapsed && "px-2")}>
             {!collapsed ? "Sign out" : "Out"}
           </Button>
         </form>
@@ -151,7 +164,7 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
       />
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-sidebar-border bg-sidebar shadow-lg transition-transform duration-200 ease-out md:hidden",
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-sidebar-border bg-sidebar shadow-lg transition-transform duration-200 ease-out md:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -183,22 +196,35 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card/90 px-4 backdrop-blur-md md:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/80 bg-card/90 px-4 backdrop-blur-md md:px-6">
           <Button
             type="button"
             variant="ghost"
-            size="sm"
-            className="md:hidden size-9 p-0"
+            size="icon"
+            className="md:hidden"
             onClick={() => setMobileOpen(true)}
             aria-label="Open menu"
           >
             <Menu className="size-5" />
           </Button>
-          <div className="flex flex-1 items-center justify-end gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Workspace</p>
+            <p className="truncate text-sm font-medium text-foreground">{currentLabel}</p>
+          </div>
+          <div className="hidden items-center gap-2 md:flex">
+            <span className="rounded-full border border-border bg-subtle px-3 py-1 text-xs text-muted-foreground">
+              Quick search <Kbd>/</Kbd>
+            </span>
+            <Button type="button" variant="outline" size="sm" className="rounded-full">
+              <ChevronsLeftRight className="size-4" />
+              Sync
+            </Button>
+          </div>
+          <div className="flex items-center justify-end gap-2">
             <ThemeToggle />
           </div>
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 p-4 md:p-6">{children}</main>
+        <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">{children}</main>
       </div>
     </div>
   );

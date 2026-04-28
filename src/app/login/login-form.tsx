@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,7 +76,8 @@ export function LoginForm({ nextPath, error, supabaseConfigured, siteUrl }: Prop
             {error === "auth" && "Sign-in failed. Try again."}
             {error === "missing_code" && "Missing authorization code."}
             {error === "missing_supabase" && "Server is missing Supabase configuration."}
-            {!["auth", "missing_code", "missing_supabase"].includes(error) && `Error: ${error}`}
+            {error === "unauthorized" && "This account is not authorized for admin access."}
+            {!["auth", "missing_code", "missing_supabase", "unauthorized"].includes(error) && `Error: ${error}`}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -93,7 +94,7 @@ export function LoginForm({ nextPath, error, supabaseConfigured, siteUrl }: Prop
           placeholder="you@company.com"
         />
       </div>
-      <Button type="submit" className="w-full" disabled={status === "sending"}>
+      <Button type="submit" variant="brand" className="w-full" disabled={status === "sending"}>
         {status === "sending" ? (
           <>
             <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -103,6 +104,13 @@ export function LoginForm({ nextPath, error, supabaseConfigured, siteUrl }: Prop
           "Send magic link"
         )}
       </Button>
+      <div className="rounded-lg border border-border bg-subtle/50 px-3 py-2 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
+          <ShieldCheck className="size-3.5 text-brand-strong" />
+          Security note
+        </span>{" "}
+        This login only grants access to the admin dashboard for authorized organization users.
+      </div>
       {status === "sent" ? (
         <Alert variant="default" className="border-primary/30 bg-primary/5">
           <AlertTitle>Check your inbox</AlertTitle>

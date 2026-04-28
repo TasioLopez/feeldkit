@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ExternalLink, FileCode2 } from "lucide-react";
+import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -11,13 +12,10 @@ export const metadata: Metadata = {
 
 export default function DashboardDocsPage() {
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Developer docs</h1>
-        <p className="mt-1 text-sm text-muted-foreground">HTTP examples and links to the public reference.</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader title="Developer docs" description="HTTP examples and links to the public reference." />
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card variant="feature">
           <CardHeader>
             <div className="flex size-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
               <FileCode2 className="size-5" aria-hidden />
@@ -34,7 +32,7 @@ export default function DashboardDocsPage() {
             </pre>
           </CardContent>
         </Card>
-        <Card>
+        <Card variant="elevated">
           <CardHeader>
             <CardTitle className="text-base">Reference</CardTitle>
             <CardDescription>Public API docs and machine-readable spec.</CardDescription>

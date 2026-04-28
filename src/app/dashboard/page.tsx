@@ -1,10 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Activity, Boxes, Database, KeyRound, ListTodo } from "lucide-react";
+import { Activity, Boxes, Database, KeyRound, ListTodo, Sparkles } from "lucide-react";
+import { MetricTile } from "@/components/dashboard/metric-tile";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { getFieldRepository } from "@/lib/repositories/get-field-repository";
 import { listReviewQueue } from "@/lib/matching/review-queue";
 import { getMemoryUsageEvents } from "@/lib/telemetry/usage-events";
-import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata: Metadata = {
   title: "Overview | FeeldKit",
@@ -62,35 +65,67 @@ export default async function DashboardPage() {
   ] as const;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Overview</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Key metrics for your FeeldKit workspace.</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Overview"
+        description="Key metrics and quick actions for your FeeldKit workspace."
+        actions={
+          <Button asChild variant="brand" size="sm" className="rounded-full">
+            <Link href="/dashboard/packs">Manage packs</Link>
+          </Button>
+        }
+      />
+
+      <Card variant="feature" className="overflow-hidden">
+        <CardHeader className="relative">
+          <div className="hero-grid pointer-events-none absolute inset-0 opacity-70" />
+          <div className="relative">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-brand/25 bg-brand-soft/60 px-3 py-1 text-xs font-medium text-brand-strong">
+              <Sparkles className="size-3.5" />
+              Intelligence status
+            </div>
+            <CardTitle className="text-2xl tracking-tight">Data quality, normalized</CardTitle>
+            <CardDescription className="max-w-2xl">
+              Monitor packs, values, and review pressure in one place. Drill down to improve match quality where it matters.
+            </CardDescription>
+          </div>
+        </CardHeader>
+      </Card>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {cards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <Link key={card.label} href={card.href} className="group block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
-              <Card className="h-full border-border/80 transition-shadow group-hover:shadow-md">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">{card.label}</CardTitle>
-                    <span className="flex size-8 items-center justify-center rounded-md bg-muted text-foreground">
-                      <Icon className="size-4" aria-hidden />
-                    </span>
-                  </div>
-                  <p className="text-3xl font-semibold tabular-nums text-foreground">{card.value}</p>
-                  <CardDescription className="text-xs leading-relaxed">{card.description}</CardDescription>
-                </CardHeader>
-                <CardFooter className="pt-0">
-                  <span className="text-xs font-medium text-primary group-hover:underline">View details</span>
-                </CardFooter>
-              </Card>
-            </Link>
-          );
-        })}
+        {cards.map((card) => (
+          <MetricTile
+            key={card.label}
+            title={card.label}
+            value={card.value}
+            description={card.description}
+            href={card.href}
+            icon={card.icon}
+          />
+        ))}
       </div>
+
+      <Card variant="elevated">
+        <CardHeader>
+          <CardTitle className="text-base">Recommended next actions</CardTitle>
+          <CardDescription>Keep normalization quality high with a quick weekly routine.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-3">
+          {[
+            { label: "Review low-confidence entries", href: "/dashboard/reviews" },
+            { label: "Audit pack coverage and versions", href: "/dashboard/packs" },
+            { label: "Rotate old API keys", href: "/dashboard/api-keys" },
+          ].map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground transition hover:bg-muted/60 hover:text-foreground"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }

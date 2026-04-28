@@ -16,7 +16,10 @@ export function ThemeToggle({ className }: { className?: string }) {
 
   if (!mounted) {
     return (
-      <div className={cn("flex h-9 w-[104px] items-center justify-center rounded-md border border-border bg-muted/50", className)} aria-hidden />
+      <div
+        className={cn("flex h-9 w-[116px] items-center justify-center rounded-full border border-border bg-muted/40", className)}
+        aria-hidden
+      />
     );
   }
 
@@ -31,7 +34,15 @@ export function ThemeToggle({ className }: { className?: string }) {
     theme === "light" ? "Light theme" : theme === "dark" ? "Dark theme" : `System (${resolvedTheme ?? "system"})`;
 
   return (
-    <Button type="button" variant="outline" size="sm" className={cn("gap-2", className)} onClick={cycle} title={label} aria-label={`Theme: ${label}. Click to cycle.`}>
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className={cn("gap-2 rounded-full px-3", className)}
+      onClick={cycle}
+      title={label}
+      aria-label={`Theme: ${label}. Click to cycle.`}
+    >
       <Icon className="size-4 shrink-0" aria-hidden />
       <span className="hidden text-xs sm:inline">{theme === "system" ? "System" : theme === "dark" ? "Dark" : "Light"}</span>
     </Button>

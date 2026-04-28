@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { DataToolbar } from "@/components/dashboard/data-toolbar";
+import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -23,12 +25,10 @@ function statusVariant(status: string): "success" | "warning" | "muted" {
 
 export default function DashboardImportsPage() {
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Imports</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Track standard lists and overlays loaded into FeeldKit.</p>
-      </div>
-      <Card className="overflow-hidden p-0">
+    <div className="space-y-5">
+      <PageHeader title="Imports" description="Track standard lists and overlays loaded into FeeldKit." />
+      <DataToolbar placeholder="Search import source (UI scaffold)" />
+      <Card variant="elevated" className="overflow-hidden p-0">
         <CardContent className="p-0">
           <Table>
             <TableHeader>

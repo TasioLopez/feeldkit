@@ -2,9 +2,12 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getFieldRepository } from "@/lib/repositories/get-field-repository";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { SectionPanel } from "@/components/dashboard/section-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Package } from "lucide-react";
 
@@ -38,17 +41,15 @@ export default async function DashboardPackDetailPage({ params }: Props) {
     return (
       <div className="space-y-6">
         <Breadcrumbs items={[{ label: "Overview", href: "/dashboard" }, { label: "Packs", href: "/dashboard/packs" }, { label: "Not found" }]} />
-        <Card className="border-dashed">
-          <CardHeader>
-            <CardTitle>Pack not found</CardTitle>
-            <CardDescription>No pack matches this key. Check the URL or return to the pack list.</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <EmptyState
+          title="Pack not found"
+          description="No pack matches this key. Check the URL or return to the pack list."
+          action={
             <Button asChild variant="outline">
               <Link href="/dashboard/packs">Back to packs</Link>
             </Button>
-          </CardContent>
-        </Card>
+          }
+        />
       </div>
     );
   }
@@ -64,36 +65,36 @@ export default async function DashboardPackDetailPage({ params }: Props) {
           { label: pack.name },
         ]}
       />
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">{pack.name}</h1>
+      <PageHeader
+        title={pack.name}
+        description={pack.description}
+        actions={
+          <div className="flex items-center gap-2">
             <Badge variant={statusVariant(pack.status)}>{pack.status}</Badge>
-            <Badge variant="outline" className="font-mono text-xs">
+            <Badge variant="outline" className="font-mono text-[11px]">
               {pack.version}
             </Badge>
           </div>
-          <p className="max-w-2xl text-muted-foreground leading-relaxed">{pack.description}</p>
-        </div>
-        <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
-          <Package className="size-7" aria-hidden />
+        }
+      />
+
+      <div className="rounded-xl border border-brand/20 bg-brand-soft/40 p-3 text-brand-strong">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Package className="size-4" />
+          Package metadata snapshot
         </div>
       </div>
+
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Version</CardTitle>
-            <CardDescription>Current pack revision</CardDescription>
-          </CardHeader>
+        <SectionPanel title="Version" description="Current pack revision">
           <CardContent>
             <p className="font-mono text-lg font-medium">{pack.version}</p>
           </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Field types</CardTitle>
-            <CardDescription>{fieldTypes.length} type{fieldTypes.length === 1 ? "" : "s"} in this pack</CardDescription>
-          </CardHeader>
+        </SectionPanel>
+        <SectionPanel
+          title="Field types"
+          description={`${fieldTypes.length} type${fieldTypes.length === 1 ? "" : "s"} in this pack`}
+        >
           <CardContent className="p-0 pt-0">
             {fieldTypes.length === 0 ? (
               <p className="px-6 pb-6 text-sm text-muted-foreground">No field types linked to this pack.</p>
@@ -120,7 +121,7 @@ export default async function DashboardPackDetailPage({ params }: Props) {
               </Table>
             )}
           </CardContent>
-        </Card>
+        </SectionPanel>
       </div>
     </div>
   );

@@ -1,8 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, GitBranch, ShieldCheck, Sparkles } from "lucide-react";
+import { Blocks, GitBranch, ShieldCheck, Sparkles } from "lucide-react";
 import { MarketingChrome } from "@/components/marketing-chrome";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CTASection } from "@/components/sections/cta-section";
+import { FeatureGrid } from "@/components/sections/feature-grid";
+import { HeroSection } from "@/components/sections/hero-section";
+import { TrustStrip } from "@/components/sections/trust-strip";
 import { env } from "@/lib/config/env";
 
 export default function Home() {
@@ -24,46 +28,66 @@ export default function Home() {
       description: "Map values across standards and practical overlays without duplicate logic.",
       icon: GitBranch,
     },
+    {
+      title: "Composable Packs",
+      description: "Ship reusable domain packs for geo, jobs, industry, and custom practical taxonomies.",
+      icon: Blocks,
+    },
   ];
 
   return (
     <MarketingChrome>
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-16 sm:px-6 sm:py-24">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">feeldkit.dev</p>
-        <h1 className="mt-4 max-w-3xl text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl md:text-6xl">
-          FeeldKit
-          <span className="mt-2 block text-primary">The field intelligence layer for modern apps.</span>
-        </h1>
-        <p className="mt-6 max-w-2xl text-pretty text-lg text-muted-foreground">
-          Standardize countries, industries, jobs, company bands, technologies, intent topics, events, and other recurring fields
-          through one reusable API and TypeScript SDK.
-        </p>
-        <div className="mt-10 flex flex-wrap gap-3">
-          {showAdminLink ? (
-            <Button asChild size="lg">
-              <Link href="/dashboard">
-                Open dashboard
-                <ArrowRight className="size-4" aria-hidden />
-              </Link>
-            </Button>
-          ) : null}
-          <Button asChild variant="outline" size="lg">
-            <Link href="/docs">API documentation</Link>
-          </Button>
-        </div>
-        <div className="mt-20 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map(({ title, description, icon: Icon }) => (
-            <Card key={title} className="border-border/80 shadow-md transition-shadow hover:shadow-lg">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14">
+        <HeroSection
+          eyebrow="feeldkit.dev"
+          title="FeeldKit"
+          subtitle="Standardize countries, industries, jobs, company bands, technologies, intent topics, events, and other recurring fields through one reusable API and TypeScript SDK."
+          primaryCta={showAdminLink ? { href: "/dashboard", label: "Open dashboard" } : undefined}
+          secondaryCta={{ href: "/docs", label: "API documentation" }}
+        />
+
+        <TrustStrip />
+
+        <section className="space-y-4">
+          <div className="max-w-2xl">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">Build cleaner pipelines with one field layer</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Replace duplicated field parsing logic across forms, imports, ETL jobs, and enrichment flows.
+            </p>
+          </div>
+          <FeatureGrid items={features} />
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-3">
+          {[
+            {
+              title: "Developer-first",
+              desc: "Typed SDK, predictable responses, and canonical metadata for trustworthy automation.",
+            },
+            {
+              title: "Ops-friendly",
+              desc: "Review queues and alias enrichment workflows keep quality improving over time.",
+            },
+            {
+              title: "Production-ready",
+              desc: "Pack-based architecture keeps normalization logic reusable between teams and products.",
+            },
+          ].map((item) => (
+            <Card key={item.title} variant="elevated">
               <CardHeader>
-                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                  <Icon className="size-5" aria-hidden />
-                </div>
-                <CardTitle className="text-base">{title}</CardTitle>
-                <CardDescription className="text-sm leading-relaxed">{description}</CardDescription>
+                <CardTitle className="text-base">{item.title}</CardTitle>
+                <CardDescription>{item.desc}</CardDescription>
               </CardHeader>
+              <CardContent className="pt-0">
+                <Button asChild variant="link" className="px-0 text-brand-strong">
+                  <Link href="/docs">See details</Link>
+                </Button>
+              </CardContent>
             </Card>
           ))}
-        </div>
+        </section>
+
+        <CTASection />
       </main>
     </MarketingChrome>
   );

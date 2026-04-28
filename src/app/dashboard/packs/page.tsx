@@ -1,8 +1,12 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { DataToolbar } from "@/components/dashboard/data-toolbar";
+import { PageHeader } from "@/components/dashboard/page-header";
 import { getFieldRepository } from "@/lib/repositories/get-field-repository";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const metadata: Metadata = {
@@ -28,20 +32,31 @@ export default async function DashboardPacksPage() {
   }));
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Field packs</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Packs group related field types and normalization rules.</p>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="Field packs"
+        description="Packs group related field types and normalization rules."
+        actions={
+          <Button asChild variant="soft" size="sm" className="rounded-full">
+            <Link href="/dashboard/imports">View imports</Link>
+          </Button>
+        }
+      />
+
+      <DataToolbar placeholder="Search packs (UI scaffold)" />
+
       {packs.length === 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>No packs</CardTitle>
-            <CardDescription>Seed or import packs to see them listed here.</CardDescription>
-          </CardHeader>
-        </Card>
+        <EmptyState
+          title="No packs available"
+          description="Seed or import packs to see them listed here."
+          action={
+            <Button asChild variant="outline" size="sm">
+              <Link href="/dashboard/imports">Go to imports</Link>
+            </Button>
+          }
+        />
       ) : (
-        <Card className="overflow-hidden p-0">
+        <Card variant="elevated" className="overflow-hidden p-0">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
