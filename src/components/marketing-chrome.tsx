@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { BookOpen, LayoutDashboard, Sparkles } from "lucide-react";
+import { BookOpen, LayoutDashboard } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { env } from "@/lib/config/env";
@@ -14,8 +15,8 @@ export function MarketingChrome({ children, className }: { children: ReactNode; 
       <header className="sticky top-0 z-40 border-b border-stroke-soft/80 bg-surface-section/88 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight text-foreground">
-            <span className="flex size-8 items-center justify-center rounded-lg border border-brand/20 bg-brand-soft text-brand-strong shadow-sm">
-              <Sparkles className="size-4" />
+            <span className="flex size-8 items-center justify-center rounded-lg border border-brand/20 bg-brand-soft/80 shadow-sm">
+              <BrandLogo className="size-5" priority />
             </span>
             <span>FeeldKit</span>
           </Link>

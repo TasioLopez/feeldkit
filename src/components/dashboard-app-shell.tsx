@@ -17,6 +17,7 @@ import {
   PanelLeft,
   X,
 } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
@@ -99,8 +100,8 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
           href="/"
           className={cn("flex items-center gap-2 font-semibold tracking-tight", collapsed && "w-full justify-center")}
         >
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-brand/20 bg-brand-soft text-brand-strong">
-            FK
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-brand/20 bg-brand-soft/80 p-1">
+            <BrandLogo className="size-5" priority />
           </span>
           {!collapsed ? <span className="truncate text-sidebar-foreground">FeeldKit</span> : null}
         </Link>
@@ -174,7 +175,13 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex h-14 items-center justify-end border-b border-sidebar-border px-2">
+        <div className="flex h-14 items-center justify-between border-b border-sidebar-border px-2">
+          <Link href="/" className="flex items-center gap-2 pl-1 font-semibold tracking-tight text-sidebar-foreground">
+            <span className="flex size-7 items-center justify-center rounded-lg border border-brand/20 bg-brand-soft/80 p-1">
+              <BrandLogo className="size-4" />
+            </span>
+            <span className="text-sm">FeeldKit</span>
+          </Link>
           <Button type="button" variant="ghost" size="sm" className="size-9 p-0" onClick={() => setMobileOpen(false)} aria-label="Close menu">
             <X className="size-5" />
           </Button>

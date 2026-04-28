@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { LoginForm } from "./login-form";
 import { env, isSupabaseConfigured } from "@/lib/config/env";
+import { BrandLogo } from "@/components/brand-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, ShieldCheck, Sparkles } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 
 export default async function LoginPage({
   searchParams,
@@ -22,8 +23,8 @@ export default async function LoginPage({
       <div className="relative grid w-full max-w-4xl gap-4 lg:grid-cols-[0.95fr_1.05fr]">
         <Card variant="panel" className="hidden lg:block">
           <CardHeader>
-            <div className="flex size-11 items-center justify-center rounded-lg border border-brand/20 bg-brand-soft/70 text-brand-strong">
-              <Sparkles className="size-5" />
+            <div className="flex size-11 items-center justify-center rounded-lg border border-brand/20 bg-brand-soft/70 p-1 text-brand-strong">
+              <BrandLogo className="size-8" priority />
             </div>
             <CardTitle className="text-2xl">FeeldKit admin</CardTitle>
             <CardDescription>Secure operational access for packs, imports, reviews, and API key management.</CardDescription>
@@ -44,8 +45,8 @@ export default async function LoginPage({
 
         <Card variant="feature" className="w-full border-border shadow-xl">
           <CardHeader className="space-y-1 text-center sm:text-left">
-            <div className="mx-auto flex size-12 items-center justify-center rounded-xl border border-brand/20 bg-brand-soft/70 text-brand-strong sm:mx-0">
-              <ShieldCheck className="size-6" />
+            <div className="mx-auto flex size-12 items-center justify-center rounded-xl border border-brand/20 bg-brand-soft/70 p-1 text-brand-strong sm:mx-0">
+              <BrandLogo className="size-9" priority />
             </div>
             <Badge variant="glow" className="mx-auto w-fit sm:mx-0">
               Admin access
