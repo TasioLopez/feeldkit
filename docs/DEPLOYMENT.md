@@ -92,7 +92,16 @@ Recommended cadence:
 Source references used by adapters:
 
 - Industry taxonomy backbone from [LinkedIn Industry Codes V2](https://learn.microsoft.com/en-us/linkedin/shared/references/reference-tables/industry-codes-v2)
+- LinkedIn to NAICS equivalence from [Industry Codes V2 NAICS](https://learn.microsoft.com/en-us/linkedin/shared/references/reference-tables/industry-codes-v2-naics)
 - People/job filter typology from [Search Leads reference](https://fdocs.info/api-reference/endpoint/search-leads)
+
+Industry interoperability notes:
+
+1. Imports now populate concept-layer tables (`industry_concepts`, `industry_concept_codes`, `industry_concept_edges`).
+2. Inferred cross-system edges are inserted as `pending` and should be reviewed in `/dashboard/industry`.
+3. Translation endpoints:
+   - `POST /api/v1/admin/industry/resolve`
+   - `POST /api/v1/admin/industry/translate`
 
 ## Security operations runbook
 

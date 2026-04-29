@@ -30,6 +30,7 @@ const mainNav: NavItem[] = [{ href: "/dashboard", label: "Overview", icon: Layou
 
 const dataNav: NavItem[] = [
   { href: "/dashboard/packs", label: "Packs", icon: Package },
+  { href: "/dashboard/industry", label: "Industry", icon: Database },
   { href: "/dashboard/imports", label: "Imports", icon: Database },
 ];
 

@@ -1,10 +1,11 @@
 import type { SeedValue } from "../../src/data/packs/types";
 import { toDeterministicKey } from "./utils";
+import type { IndustryCodeNode } from "./industry-interop-types";
 
 const LINKEDIN_INDUSTRIES_MARKDOWN_URL =
   "https://raw.githubusercontent.com/MicrosoftDocs/linkedin-api-docs/live/linkedin-api-docs/shared/references/reference-tables/industry-codes-v2.md";
 
-type ParsedIndustry = {
+export type ParsedIndustry = {
   industryId: number;
   label: string;
   hierarchy: string;
@@ -90,4 +91,31 @@ export async function loadLinkedinIndustryValues(): Promise<SeedValue[]> {
     } satisfies SeedValue;
   });
   return values;
+}
+
+export async function loadLinkedinIndustryNodes(): Promise<IndustryCodeNode[]> {
+  const text = await fetch(LINKEDIN_INDUSTRIES_MARKDOWN_URL, {
+    headers: { "User-Agent": "feeldkit-importer/1.0" },
+  })
+    .then(async (res) => (res.ok ? await res.text() : null))
+    .catch(() => null);
+  if (!text) return [];
+  const parsed = parseLinkedinIndustryMarkdown(text);
+  return parsed.map((entry) => {
+    const parts = entry.hierarchy.split(">").map((part) => part.trim()).filter(Boolean);
+    const parentLabel = parts.length > 1 ? parts[parts.length - 2] : null;
+    return {
+      codeSystem: "linkedin",
+      code: String(entry.industryId),
+      label: entry.label,
+      hierarchyPath: entry.hierarchy,
+      parentCode: parentLabel ? toDeterministicKey(parentLabel) : null,
+      status: entry.status,
+      description: entry.description || null,
+      metadata: {
+        linkedin_industry_id: entry.industryId,
+        depth: parts.length,
+      },
+    } satisfies IndustryCodeNode;
+  });
 }

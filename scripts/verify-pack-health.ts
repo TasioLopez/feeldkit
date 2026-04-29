@@ -17,6 +17,16 @@ const FIELD_TYPE_MINIMUMS: Record<string, number> = {
   normalized_job_titles: 20,
 };
 
+const INDUSTRY_SYSTEM_MINIMUMS: Record<string, number> = {
+  linkedin: 150,
+  naics: 80,
+  nace: 10,
+  isic: 10,
+  sic: 10,
+  gics: 10,
+  practical: 4,
+};
+
 async function run() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -62,6 +72,29 @@ async function run() {
       if (!typeOk) failed = true;
     }
   }
+
+  const { data: conceptCodes } = await admin.from("industry_concept_codes").select("code_system");
+  const bySystem = new Map<string, number>();
+  for (const row of conceptCodes ?? []) {
+    const system = String(row.code_system);
+    bySystem.set(system, (bySystem.get(system) ?? 0) + 1);
+  }
+  for (const [system, minimum] of Object.entries(INDUSTRY_SYSTEM_MINIMUMS)) {
+    const count = bySystem.get(system) ?? 0;
+    const ok = count >= minimum;
+    console.log(`${ok ? "[OK]" : "[LOW]"} industry_system=${system} values=${count} minimum=${minimum}`);
+    if (!ok) failed = true;
+  }
+
+  const { data: liNaicsEdges } = await admin
+    .from("industry_concept_edges")
+    .select("id")
+    .eq("relation_type", "equivalent_to")
+    .eq("source", "linkedin_industry_codes_v2_naics");
+  const liNaicsEdgeCount = (liNaicsEdges ?? []).length;
+  const liNaicsOk = liNaicsEdgeCount >= 50;
+  console.log(`${liNaicsOk ? "[OK]" : "[LOW]"} linkedin_naics_edges=${liNaicsEdgeCount} minimum=50`);
+  if (!liNaicsOk) failed = true;
 
   if (failed) {
     process.exit(1);
