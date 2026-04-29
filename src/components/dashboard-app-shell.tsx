@@ -15,6 +15,7 @@ import {
   Package,
   PanelLeftClose,
   PanelLeft,
+  Sparkles,
   X,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
@@ -32,7 +33,10 @@ const dataNav: NavItem[] = [
   { href: "/dashboard/imports", label: "Imports", icon: Database },
 ];
 
-const opsNav: NavItem[] = [{ href: "/dashboard/reviews", label: "Reviews", icon: ListTodo }];
+const opsNav: NavItem[] = [
+  { href: "/dashboard/reviews", label: "Reviews", icon: ListTodo },
+  { href: "/dashboard/enrichment", label: "AI Enricher", icon: Sparkles },
+];
 
 const platformNav: NavItem[] = [
   { href: "/dashboard/api-keys", label: "API Keys", icon: KeyRound },

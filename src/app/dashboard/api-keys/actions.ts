@@ -2,45 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { generateApiKey } from "@/lib/auth/api-key-service";
-import { createSupabaseServerClient } from "@/lib/supabase/server-app";
+import { assertAdminRole, getAdminActorContext } from "@/lib/auth/admin-context";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/config/env";
 
 const DEFAULT_SCOPES = ["read:packs", "read:fields", "normalize", "validate", "parse"];
 
 async function getActorOrgAndRole(): Promise<{ organizationId: string; role: string } | null> {
-  if (!isSupabaseConfigured()) {
+  const ctx = await getAdminActorContext();
+  if (!ctx) {
     return null;
   }
-  const userClient = await createSupabaseServerClient();
-  if (!userClient) {
-    return null;
-  }
-  const {
-    data: { user },
-  } = await userClient.auth.getUser();
-  if (!user) {
-    return null;
-  }
-  const admin = getSupabaseServiceClient();
-  if (!admin) {
-    return null;
-  }
-  const { data: profile, error } = await admin
-    .from("profiles")
-    .select("organization_id, role")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (error || !profile?.organization_id) {
-    return null;
-  }
-  return { organizationId: profile.organization_id as string, role: profile.role as string };
-}
-
-function assertCanManageKeys(role: string): void {
-  if (!["owner", "admin"].includes(role)) {
-    throw new Error("Insufficient permissions to manage API keys.");
-  }
+  return { organizationId: ctx.organizationId, role: ctx.role };
 }
 
 export async function listApiKeysForOrganization(): Promise<
@@ -82,7 +54,7 @@ export async function createApiKeyAction(name: string): Promise<{ plaintextKey?:
     return { error: "Not signed in or profile not ready." };
   }
   try {
-    assertCanManageKeys(ctx.role);
+    assertAdminRole(ctx.role, "manage API keys");
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Forbidden" };
   }
@@ -111,7 +83,7 @@ export async function revokeApiKeyAction(id: string): Promise<{ error?: string }
     return { error: "Not signed in." };
   }
   try {
-    assertCanManageKeys(ctx.role);
+    assertAdminRole(ctx.role, "manage API keys");
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Forbidden" };
   }

@@ -14,6 +14,11 @@ Use separate Supabase projects (or branches) for **development**, **staging**, a
 | `NEXT_PUBLIC_SITE_URL` | All | OAuth/magic-link redirect base (must match deployed URL) |
 | `ADMIN_ALLOWED_EMAILS` | Server only | Comma-separated exact emails allowed to access admin login/callback |
 | `ADMIN_ALLOWED_EMAIL_DOMAINS` | Server only | Comma-separated email domains allowed to access admin login/callback |
+| `OPENAI_API_KEY` | Server only | Optional AI enrichment provider key (used for proposal generation, never auto-applies) |
+| `FEELDKIT_AI_MODEL` | Server only | Optional model override for AI enrichment (default `gpt-4.1-mini`) |
+| `FEELDKIT_AI_MIN_CONFIDENCE` | Server only | Confidence floor for storing AI proposals (default `0.4`) |
+| `FEELDKIT_AI_MAX_PROPOSALS_PER_RUN` | Server only | Max accepted AI proposals per request (default `25`) |
+| `FEELDKIT_ENRICHMENT_SYNC_MAX_INPUTS` | Server only | Max batch inputs processed synchronously before queueing (default `25`) |
 
 ## Optional security / routing
 
@@ -57,6 +62,38 @@ Order: initial core migration, then `*_rls_hardening.sql`, then any follow-ups.
 
 In-process rate limiting in the app is a backstop. For production, add **WAF / rate rules** (e.g. Cloudflare) in front of `api.*` keyed by IP and optionally by API key prefix. See `docs/DEPLOYMENT.md` (this file) and `docs/ARCHITECTURE.md`.
 
+## Initial content bootstrap
+
+To load starter packs into Supabase:
+
+1. Export `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in your shell.
+2. Run `npm run seed` from the repository root.
+3. Verify `field_packs`, `field_types`, `field_values`, and `field_aliases` contain rows.
+
+For targeted pack ingest + provenance snapshots:
+
+- `npm run import:pack -- <pack-key>`
+- `npm run update:pack -- <pack-key> <version>`
+
+For full production V1 imports (geo, standards, industry, jobs):
+
+- `npm run import:full-v1 -- --dry-run` (report-only into `.generated/full-v1-import-report.json`)
+- `npm run import:full-v1` (apply ingest)
+- `npm run verify:pack-health` (checks minimum package coverage thresholds)
+- `npm run process:enrichment-jobs` (process pending queued enrichment jobs)
+
+Recommended cadence:
+
+1. Run dry-run weekly and inspect diff/count report.
+2. Run apply monthly (or as source standards update).
+3. Run verify script after each apply and before release.
+4. If regression appears, restore using previous `field_pack_versions` snapshot metadata and re-run targeted import.
+
+Source references used by adapters:
+
+- Industry taxonomy backbone from [LinkedIn Industry Codes V2](https://learn.microsoft.com/en-us/linkedin/shared/references/reference-tables/industry-codes-v2)
+- People/job filter typology from [Search Leads reference](https://fdocs.info/api-reference/endpoint/search-leads)
+
 ## Security operations runbook
 
 ### 1) Rotate Supabase credentials
@@ -86,6 +123,12 @@ In-process rate limiting in the app is a backstop. For production, add **WAF / r
 2. Add stricter burst limits for `/login` and `/auth/*`.
 3. Enable bot mitigation/challenges where appropriate.
 4. Review 429/403 logs and tune thresholds.
+
+### 6) AI enrichment failure/fallback
+1. If `OPENAI_API_KEY` is missing or provider fails, enrichment falls back to heuristic provider.
+2. Proposals remain `pending`; no canonical writes happen until explicit approval.
+3. If AI quality dips, raise `FEELDKIT_AI_MIN_CONFIDENCE` and reduce `FEELDKIT_AI_MAX_PROPOSALS_PER_RUN`.
+4. For large dashboard batches, jobs are queued; run `npm run process:enrichment-jobs` via cron/worker process.
 
 ## CI
 

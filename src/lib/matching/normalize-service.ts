@@ -21,6 +21,8 @@ export const normalizeRequestSchema = z.object({
 export async function normalizeOne(request: z.infer<typeof normalizeRequestSchema>) {
   const repo = getFieldRepository();
   const normalizedInput = normalizeText(request.value);
+  const fieldType = await repo.getFieldTypeByKey(request.field_key);
+  const fieldTypeId = fieldType?.id ?? null;
   const candidates = (
     await Promise.all([
       exactAliasMatch(repo, request.field_key, request.value),
@@ -37,11 +39,18 @@ export async function normalizeOne(request: z.infer<typeof normalizeRequestSchem
     .sort((a, b) => b.confidence - a.confidence)[0];
 
   if (!top) {
-    const review = enqueueReview({
+    const review = await enqueueReview({
+      organizationId: request.organization_id ?? null,
+      fieldTypeId,
       fieldKey: request.field_key,
       input: request.value,
       normalizedInput,
       confidence: 0,
+      status: "pending",
+      suggestedValueId: null,
+      selectedValueId: null,
+      reviewedAt: null,
+      notes: null,
     });
     return {
       field_key: request.field_key,
@@ -57,11 +66,18 @@ export async function normalizeOne(request: z.infer<typeof normalizeRequestSchem
 
   const confidence = classifyConfidence(top.confidence);
   if (confidence.needsReview) {
-    enqueueReview({
+    await enqueueReview({
+      organizationId: request.organization_id ?? null,
+      fieldTypeId,
       fieldKey: request.field_key,
       input: request.value,
       normalizedInput,
       confidence: top.confidence,
+      status: "pending",
+      suggestedValueId: top.value.id,
+      selectedValueId: null,
+      reviewedAt: null,
+      notes: null,
     });
   }
 

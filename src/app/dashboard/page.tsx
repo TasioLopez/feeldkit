@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { getAdminActorContext } from "@/lib/auth/admin-context";
 import { getFieldRepository } from "@/lib/repositories/get-field-repository";
 import { listReviewQueue } from "@/lib/matching/review-queue";
 import { getMemoryUsageEvents } from "@/lib/telemetry/usage-events";
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardPage() {
+  const actor = await getAdminActorContext();
   const repo = getFieldRepository();
   const packs = (await repo.getPacks()).length;
   const fieldTypes = (await repo.getFieldTypes()).length;
@@ -25,7 +27,7 @@ export default async function DashboardPage() {
   for (const type of types) {
     values += (await repo.getValuesByFieldKey(type.key)).length;
   }
-  const pendingReviews = listReviewQueue().length;
+  const pendingReviews = (await listReviewQueue(actor?.organizationId)).length;
   const usage = getMemoryUsageEvents().length;
 
   const cards = [

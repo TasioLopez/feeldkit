@@ -38,7 +38,14 @@ export function createScopedHandler(
       });
       return res;
     }
-    const response = await handler(request);
+    const requestWithContext = new Request(request, {
+      headers: new Headers(request.headers),
+    });
+    requestWithContext.headers.set("x-feeldkit-api-key-id", auth.apiKey.id);
+    if (auth.apiKey.organizationId) {
+      requestWithContext.headers.set("x-feeldkit-organization-id", auth.apiKey.organizationId);
+    }
+    const response = await handler(requestWithContext);
     const fieldKey = url.searchParams.get("fieldKey") ?? null;
     touchApiKeyLastUsedThrottled(auth.apiKey.id);
     void logUsageEvent({

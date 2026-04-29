@@ -12,7 +12,10 @@
     "test:run": "vitest run",
     "seed": "node --import tsx ./scripts/seed.ts",
     "import:pack": "node --import tsx ./scripts/import-pack.ts",
+    "import:full-v1": "node --import tsx ./scripts/import-full-v1.ts",
     "update:pack": "node --import tsx ./scripts/update-pack.ts",
+    "verify:pack-health": "node --import tsx ./scripts/verify-pack-health.ts",
+    "process:enrichment-jobs": "node --import tsx ./scripts/process-enrichment-jobs.ts",
     "export:pack": "node --import tsx ./scripts/export-pack.ts"
   },
   "dependencies": {

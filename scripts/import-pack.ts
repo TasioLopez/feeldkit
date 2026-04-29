@@ -1,6 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { createClient } from "@supabase/supabase-js";
 import { seedPacks } from "../src/data/packs";
+import { ingestPack } from "../src/lib/ingestion/ingest-pack";
 
 async function run() {
   const packKey = process.argv[2];
@@ -32,7 +34,21 @@ async function run() {
     },
   ];
   await writeFile(registryPath, JSON.stringify(next, null, 2));
-  console.log(`Imported pack: ${pack.key}`);
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    console.log(`Imported pack metadata only: ${pack.key} (set NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY to write DB)`);
+    return;
+  }
+  const admin = createClient(url, key);
+  const result = await ingestPack(admin, pack, {
+    sourceKey: `manual-import:${pack.key}`,
+    forceVersionSnapshot: true,
+  });
+  console.log(
+    `Imported pack to DB: ${pack.key} (field_types=${result.fieldTypes}, values=${result.fieldValues}, aliases=${result.aliases})`,
+  );
 }
 
 run().catch((error) => {

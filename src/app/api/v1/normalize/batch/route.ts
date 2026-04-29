@@ -8,7 +8,15 @@ const batchSchema = z.object({
 });
 
 export const POST = createScopedHandler("normalize", async (request) => {
-  const payload = batchSchema.safeParse(await request.json());
+  const raw = (await request.json()) as { items?: Array<Record<string, unknown>> };
+  const orgId = request.headers.get("x-feeldkit-organization-id");
+  const payload = batchSchema.safeParse({
+    items:
+      raw.items?.map((item) => ({
+        ...item,
+        organization_id: (item.organization_id as string | undefined) ?? orgId ?? undefined,
+      })) ?? [],
+  });
   if (!payload.success) {
     return NextResponse.json({ error: "invalid payload", details: payload.error.flatten() }, { status: 400 });
   }

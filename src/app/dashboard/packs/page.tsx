@@ -4,11 +4,11 @@ import { DataToolbar } from "@/components/dashboard/data-toolbar";
 import { Reveal } from "@/components/motion/reveal";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { getFieldRepository } from "@/lib/repositories/get-field-repository";
-import { Badge } from "@/components/ui/badge";
+import { getSupabaseServiceClient } from "@/lib/supabase/server";
+import { getAdminActorContext } from "@/lib/auth/admin-context";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PacksExpandableTable } from "./packs-expandable-table";
 
 export const metadata: Metadata = {
   title: "Field packs | FeeldKit",
@@ -25,12 +25,56 @@ function statusVariant(status: string): "default" | "secondary" | "success" | "w
 
 export default async function DashboardPacksPage() {
   const repo = getFieldRepository();
+  const actor = await getAdminActorContext();
+  const admin = getSupabaseServiceClient();
   const packsList = await repo.getPacks();
   const allTypes = await repo.getFieldTypes();
+  const { data: versions } = admin
+    ? await admin.from("field_pack_versions").select("field_pack_id, created_at").order("created_at", { ascending: false }).limit(1000)
+    : { data: [] as Array<{ field_pack_id: string; created_at: string }> };
+  const lastIngestByPack = new Map<string, string>();
+  for (const row of versions ?? []) {
+    if (!lastIngestByPack.has(row.field_pack_id)) {
+      lastIngestByPack.set(row.field_pack_id, row.created_at);
+    }
+  }
+
+  const [reviewRows, proposalRows] =
+    admin && actor?.organizationId
+      ? await Promise.all([
+          admin.from("mapping_reviews").select("field_type_id").eq("organization_id", actor.organizationId).eq("status", "pending"),
+          admin
+            .from("enrichment_proposals")
+            .select("field_type_id")
+            .eq("organization_id", actor.organizationId)
+            .eq("status", "pending"),
+        ])
+      : [{ data: [] as Array<{ field_type_id: string }> }, { data: [] as Array<{ field_type_id: string }> }];
+  const pendingReviewByType = new Map<string, number>();
+  for (const row of reviewRows.data ?? []) {
+    pendingReviewByType.set(row.field_type_id, (pendingReviewByType.get(row.field_type_id) ?? 0) + 1);
+  }
+  const pendingProposalByType = new Map<string, number>();
+  for (const row of proposalRows.data ?? []) {
+    pendingProposalByType.set(row.field_type_id, (pendingProposalByType.get(row.field_type_id) ?? 0) + 1);
+  }
+
   const packs = packsList.map((pack) => ({
     ...pack,
     fieldTypeCount: allTypes.filter((entry) => entry.fieldPackId === pack.id).length,
+    pendingReviews: allTypes
+      .filter((entry) => entry.fieldPackId === pack.id)
+      .reduce((acc, entry) => acc + (pendingReviewByType.get(entry.id) ?? 0), 0),
+    pendingProposals: allTypes
+      .filter((entry) => entry.fieldPackId === pack.id)
+      .reduce((acc, entry) => acc + (pendingProposalByType.get(entry.id) ?? 0), 0),
+    lastIngestAt: lastIngestByPack.get(pack.id) ?? null,
   }));
+  const packsWithHealth = packs.map((pack) => {
+    const pressure = Math.min(pack.pendingReviews + pack.pendingProposals, 20);
+    const healthScore = Math.max(0, 100 - pressure * 5);
+    return { ...pack, healthScore };
+  });
 
   return (
     <div className="space-y-6">
@@ -57,6 +101,13 @@ export default async function DashboardPacksPage() {
             <span className="rounded-full border border-stroke-soft bg-surface-panel px-3 py-1 text-xs text-muted-foreground">
               {packs.length} packs
             </span>
+            <span className="rounded-full border border-stroke-soft bg-surface-panel px-3 py-1 text-xs text-muted-foreground">
+              avg health{" "}
+              {Math.round(
+                packsWithHealth.reduce((acc, pack) => acc + pack.healthScore, 0) / Math.max(packsWithHealth.length, 1),
+              )}
+              %
+            </span>
           </>
         }
       />
@@ -76,38 +127,22 @@ export default async function DashboardPacksPage() {
         </Reveal>
       ) : (
         <Reveal delay={0.08}>
-          <Card variant="elevated" className="overflow-hidden p-0">
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Pack</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Version</TableHead>
-                  <TableHead className="text-right">Field types</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {packs.map((pack) => (
-                  <TableRow key={pack.id}>
-                    <TableCell>
-                      <Link href={`/dashboard/packs/${pack.key}`} className="font-medium text-primary hover:underline">
-                        {pack.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{pack.category}</TableCell>
-                    <TableCell>
-                      <Badge variant={statusVariant(pack.status)}>{pack.status}</Badge>
-                    </TableCell>
-                    <TableCell className="font-mono text-sm text-muted-foreground">{pack.version}</TableCell>
-                    <TableCell className="text-right tabular-nums">{pack.fieldTypeCount}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+          <PacksExpandableTable
+            packs={packsWithHealth.map((pack) => ({
+              id: pack.id,
+              key: pack.key,
+              name: pack.name,
+              category: pack.category,
+              status: pack.status,
+              version: pack.version,
+              fieldTypeCount: pack.fieldTypeCount,
+              pendingReviews: pack.pendingReviews,
+              pendingProposals: pack.pendingProposals,
+              healthScore: pack.healthScore,
+              lastIngestAt: pack.lastIngestAt,
+            }))}
+            statusVariant={statusVariant}
+          />
         </Reveal>
       )}
     </div>
