@@ -90,7 +90,7 @@ export default async function DashboardPage() {
               Intelligence status
             </div>
             <CardTitle className="text-2xl tracking-tight">Data quality, normalized</CardTitle>
-            <CardDescription className="max-w-2xl">
+            <CardDescription>
               Monitor packs, values, and review pressure in one place. Drill down to improve match quality where it matters.
             </CardDescription>
           </div>

@@ -157,12 +157,13 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          "hidden shrink-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex md:flex-col transition-[width] duration-200 ease-out",
+          "hidden shrink-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:fixed md:inset-y-0 md:left-0 md:z-40 md:flex md:flex-col transition-[width] duration-200 ease-out",
           collapsed ? "w-[72px]" : "w-60",
         )}
       >
         {sidebarInner}
       </aside>
+      <div className={cn("hidden shrink-0 md:block transition-[width] duration-200 ease-out", collapsed ? "w-[72px]" : "w-60")} />
 
       {/* Mobile drawer */}
       <div
