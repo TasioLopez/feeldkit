@@ -33,10 +33,17 @@ type PackFieldTypeData = {
 
 type Props = {
   packs: PackRow[];
-  statusVariant: (status: string) => "default" | "secondary" | "success" | "warning" | "muted";
 };
 
-export function PacksExpandableTable({ packs, statusVariant }: Props) {
+function statusVariant(status: string): "default" | "secondary" | "success" | "warning" | "muted" {
+  const s = status.toLowerCase();
+  if (s === "active" || s === "published" || s === "ready") return "success";
+  if (s === "draft" || s === "beta") return "warning";
+  if (s === "deprecated") return "muted";
+  return "secondary";
+}
+
+export function PacksExpandableTable({ packs }: Props) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [details, setDetails] = useState<Record<string, PackFieldTypeData[]>>({});

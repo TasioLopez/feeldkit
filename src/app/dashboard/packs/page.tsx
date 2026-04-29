@@ -15,14 +15,6 @@ export const metadata: Metadata = {
   description: "Browse field packs and versions.",
 };
 
-function statusVariant(status: string): "default" | "secondary" | "success" | "warning" | "muted" {
-  const s = status.toLowerCase();
-  if (s === "active" || s === "published" || s === "ready") return "success";
-  if (s === "draft" || s === "beta") return "warning";
-  if (s === "deprecated") return "muted";
-  return "secondary";
-}
-
 export default async function DashboardPacksPage() {
   const repo = getFieldRepository();
   const actor = await getAdminActorContext();
@@ -141,7 +133,6 @@ export default async function DashboardPacksPage() {
               healthScore: pack.healthScore,
               lastIngestAt: pack.lastIngestAt,
             }))}
-            statusVariant={statusVariant}
           />
         </Reveal>
       )}
