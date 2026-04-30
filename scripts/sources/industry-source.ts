@@ -1,6 +1,6 @@
 import type { SeedPack } from "../../src/data/packs/types";
 import { practicalIndustriesSeed } from "../../src/data/packs/industry/practical-industries.seed";
-import { buildIndustryConceptGraph } from "./industry-concept-graph";
+import { buildIndustryConceptGraphWithDiagnostics } from "./industry-concept-graph";
 import type { SourceAdapter } from "./types";
 import { toDeterministicKey, uniqueByKey, validateSeedValues } from "./utils";
 
@@ -30,7 +30,9 @@ const INDUSTRY_BACKBONE = [
 export const industrySourceAdapter: SourceAdapter = {
   name: "industry-source-adapter",
   async run(): Promise<SeedPack[]> {
-    const graph = await buildIndustryConceptGraph();
+    const forceSnapshots =
+      process.env.FEELDKIT_SOURCE_FORCE_SNAPSHOTS === "true" || process.env.FEELDKIT_SOURCE_FORCE_SNAPSHOTS === "1";
+    const graph = (await buildIndustryConceptGraphWithDiagnostics({ forceSnapshots })).graph;
     const bySystem = new Map<string, Array<{ code: string; label: string; hierarchyPath: string | null; metadata?: Record<string, unknown> }>>();
     for (const node of graph.nodes) {
       bySystem.set(node.codeSystem, [

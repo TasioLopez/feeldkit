@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FeeldKit
 
-## Getting Started
+FeeldKit is a Mapping Intelligence Layer for developers and software editors.
+It helps apps translate recurrent business fields (industry, jobs, geo, company
+and person facets) across heterogeneous systems such as LinkedIn APIs, lead-gen
+SaaS tools, forms, and CRMs.
 
-First, run the development server:
+## Product Direction
+
+- Canonical concept mediation first
+- Deterministic flow packs for common pipelines
+- Semantic inference for long-tail variation
+- Human review for ambiguous/low-confidence cases
+- Continuous learning from approved decisions
+
+## Current Focus
+
+1. Complete canonical coverage for key packs (industry, jobs, geo, standards)
+2. Improve source ingestion reliability and coverage enforcement
+3. Add explicit cross-pack references to maximize reuse
+4. Ship flow-pack baseline for high-frequency integration paths
+5. Strengthen explainability with confidence + provenance + trace outputs
+
+## Project Docs
+
+- `docs/VISION.md`
+- `docs/ARCHITECTURE.md`
+- `docs/OPERATING_MODEL.md`
+- `docs/ROADMAP.md`
+- `docs/DECISIONS.md`
+- `docs/PLAN_MAPPING_INTELLIGENCE_MASTER.md`
+- `docs/PLAN_NEXT_8_WEEKS_EXECUTION.md`
+
+## Development
+
+Run the local dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Run key checks:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run typecheck
+npm run test:run
+npm run verify:pack-health
+```

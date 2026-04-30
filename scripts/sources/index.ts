@@ -1,4 +1,5 @@
 import type { SeedPack } from "@/data/packs/types";
+import { companySourceAdapter } from "./company-source";
 import { geoSourceAdapter } from "./geo-source";
 import { industrySourceAdapter } from "./industry-source";
 import { jobsSourceAdapter } from "./jobs-source";
@@ -17,7 +18,7 @@ function sortPackDeterministically(pack: SeedPack): SeedPack {
 }
 
 export async function buildFullV1Packs(): Promise<SeedPack[]> {
-  const adapters = [geoSourceAdapter, standardsSourceAdapter, industrySourceAdapter, jobsSourceAdapter];
+  const adapters = [geoSourceAdapter, standardsSourceAdapter, industrySourceAdapter, jobsSourceAdapter, companySourceAdapter];
   const packs = await Promise.all(adapters.map((adapter) => adapter.run()));
   return packs
     .flat()

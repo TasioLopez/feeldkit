@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseLinkedinIndustryMarkdown } from "./linkedin-industries-source";
+import { assertLinkedinIndustryParseQuality, parseLinkedinIndustryMarkdown } from "./linkedin-industries-source";
 
 describe("linkedin industries source parser", () => {
   it("parses active and inactive rows from markdown tables", () => {
@@ -19,5 +19,26 @@ describe("linkedin industries source parser", () => {
     expect(rows[0]?.industryId).toBe(2190);
     expect(rows[1]?.hierarchy).toBe("Accommodation Services > Food and Beverage Services");
     expect(rows[2]?.status).toBe("inactive");
+  });
+
+  it("fails quality checks when active section is missing", () => {
+    const markdown = `
+| Industry ID | Label | Hierarchy | Description |
+| --- | --- | --- | --- |
+| 2190 | Accommodation Services | Accommodation Services | Hotels and lodging |
+`;
+    const rows = parseLinkedinIndustryMarkdown(markdown);
+    expect(() => assertLinkedinIndustryParseQuality(markdown, rows, 1)).toThrow("missing active nodes section");
+  });
+
+  it("fails quality checks when parsed rows are below minimum", () => {
+    const markdown = `
+## Active Nodes
+| Industry ID | Label | Hierarchy | Description |
+| --- | --- | --- | --- |
+| 2190 | Accommodation Services | Accommodation Services | Hotels and lodging |
+`;
+    const rows = parseLinkedinIndustryMarkdown(markdown);
+    expect(() => assertLinkedinIndustryParseQuality(markdown, rows, 2)).toThrow("parsed_rows_below_minimum");
   });
 });

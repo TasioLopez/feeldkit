@@ -1,9 +1,9 @@
 import type { SeedPack } from "@/data/packs/types";
 
 export const languagesSeed: SeedPack = {
-  key: "standards",
-  name: "Standards",
-  version: "1.0.0",
+  key: "standards_languages",
+  name: "Standards — Languages",
+  version: "2.0.0",
   source: "iso639-sample",
   fieldTypes: [
     {

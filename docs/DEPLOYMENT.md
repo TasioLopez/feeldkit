@@ -72,15 +72,25 @@ To load starter packs into Supabase:
 
 For targeted pack ingest + provenance snapshots:
 
-- `npm run import:pack -- <pack-key>`
+- `npm run import:pack -- <pack-key>` (use `standards` to import all `standards_*` modules in one run, or e.g. `standards_currencies` for a single module)
 - `npm run update:pack -- <pack-key> <version>`
 
-For full production V1 imports (geo, standards, industry, jobs):
+For full production V1 imports (geo, modular `standards_*` packs, industry, jobs, company consumer refs):
 
 - `npm run import:full-v1 -- --dry-run` (report-only into `.generated/full-v1-import-report.json`)
+- `npm run import:full-v1 -- --dry-run --force-snapshots` (forces local source snapshots for incident validation)
 - `npm run import:full-v1` (apply ingest)
 - `npm run verify:pack-health` (checks minimum package coverage thresholds)
 - `npm run process:enrichment-jobs` (process pending queued enrichment jobs)
+
+### Phase 1 — canonical field references, modular standards, country bundles
+
+- **Canonical refs:** consumer `field_types` (for example `company_industry`) store `feeldkit.canonical_ref.v1` on `metadata_schema`. Re-imports merge metadata unless `feeldkit.metadata_lock` is true or you pass a force-overwrite path through ingestion options.
+- **Import report:** `.generated/full-v1-import-report.json` includes `field_reference_summary.field_types_with_canonical_ref` after each full import.
+- **Standards modules:** `standards_currencies`, `standards_languages`, and `standards_timezones` share `field_packs.category = standards` but have distinct `field_packs.key` values. Legacy rows keyed only as `standards` may remain until you archive them after a successful migration.
+- **Country defaults:** deterministic `geo.countries` → currency/language/timezone crosswalks are built from `src/data/country-iso2-defaults.json` (ISO-aligned defaults) joined to each country value’s `metadata.iso2` during `import:full-v1`.
+- **Operator tools:** `/dashboard/packs/data` exposes parsed canonical refs; `/dashboard/packs/country-bundle?country_iso2=NL` (or `country_key=…`) returns bundled related standards with crosswalk trace.
+- **Rollback:** refs are metadata-first—remove or adjust seed `metadata_schema`, or restore a prior `field_pack_versions` snapshot, then re-run `import:full-v1` without forcing overwrites on locked rows.
 
 Recommended cadence:
 
@@ -89,11 +99,23 @@ Recommended cadence:
 3. Run verify script after each apply and before release.
 4. If regression appears, restore using previous `field_pack_versions` snapshot metadata and re-run targeted import.
 
+Phase 0 expected thresholds (release gate):
+
+| Check | Minimum |
+| --- | --- |
+| `linkedin` concept codes | 150 |
+| `naics` concept codes | 80 |
+| LinkedIn -> NAICS `equivalent_to` edges | 50 |
+| `linkedin_industry_codes` field values | 150 |
+| `naics_codes` field values | 80 |
+
 Source references used by adapters:
 
+- Country default currency / primary language (ISO 639-3) / representative timezone mapping in `src/data/country-iso2-defaults.json` is derived from the [mledoze/countries](https://github.com/mledoze/countries) dataset (reduced fields) for deterministic crosswalk generation.
 - Industry taxonomy backbone from [LinkedIn Industry Codes V2](https://learn.microsoft.com/en-us/linkedin/shared/references/reference-tables/industry-codes-v2)
 - LinkedIn to NAICS equivalence from [Industry Codes V2 NAICS](https://learn.microsoft.com/en-us/linkedin/shared/references/reference-tables/industry-codes-v2-naics)
 - People/job filter typology from [Search Leads reference](https://fdocs.info/api-reference/endpoint/search-leads)
+- Versioned fallback snapshots for critical industry sources are in `scripts/sources/snapshots/`.
 
 Industry interoperability notes:
 
@@ -102,6 +124,41 @@ Industry interoperability notes:
 3. Translation endpoints:
    - `POST /api/v1/admin/industry/resolve`
    - `POST /api/v1/admin/industry/translate`
+
+## Phase 0 incident runbook (source reliability)
+
+### 1) Detect
+1. Run `npm run import:full-v1 -- --dry-run`.
+2. Inspect `.generated/full-v1-import-report.json` sections:
+   - `source_diagnostics`
+   - `preflight_checks`
+   - `industry_concept_summary`
+3. Run `npm run verify:pack-health`.
+
+### 2) Classify
+- `source_diagnostics.parse_ok=false` with HTTP/network errors -> upstream fetch outage/routing issue.
+- `parse_ok=false` with parse errors -> source format drift.
+- preflight failures with successful fetches -> low-content/coverage regression.
+- integrity failures (`*_integrity` counters > 0) -> DB ingest consistency issue.
+
+### 3) Recover
+1. Retry dry-run once (temporary network failures are common).
+2. Run dry-run with snapshots: `npm run import:full-v1 -- --dry-run --force-snapshots`.
+3. If snapshot mode passes and network mode fails, classify as upstream availability issue and postpone apply.
+4. If both fail, treat as critical data incident; do not apply ingest.
+5. For production rollback, restore prior `field_pack_versions` lineage and rerun targeted import.
+
+### 4) Verify and promote
+1. Apply only when dry-run preflight checks are all `[OK]`.
+2. Immediately run `npm run verify:pack-health`.
+3. Confirm no `LOW` checks and no degraded `source_diagnostics` in latest report.
+4. Attach report artifact to release notes/ops log.
+
+### Snapshot refresh procedure
+1. Refresh snapshot files under `scripts/sources/snapshots/` from authoritative source pages.
+2. Run parser tests and dry-run.
+3. Commit snapshot update with source date/version.
+4. Re-run `npm run verify:pack-health` after apply to ensure parity.
 
 ## Security operations runbook
 

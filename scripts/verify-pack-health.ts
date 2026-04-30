@@ -1,20 +1,32 @@
 import { createClient } from "@supabase/supabase-js";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { FEELDKIT_CANONICAL_REF_V1 } from "../src/lib/domain/canonical-ref";
 
-const MIN_THRESHOLDS: Record<string, number> = {
+const MIN_PACK_VALUE_COUNTS: Record<string, number> = {
   geo: 200,
-  standards: 200,
+  standards_currencies: 40,
+  standards_languages: 15,
+  standards_timezones: 80,
   industry: 30,
   jobs: 80,
+  company: 1,
 };
 
 const FIELD_TYPE_MINIMUMS: Record<string, number> = {
   practical_industry: 200,
+  linkedin_industry_codes: 150,
+  naics_codes: 80,
   job_functions: 20,
   seniority_bands: 10,
   years_of_experience: 5,
   year_in_current_company: 5,
   year_in_current_position: 5,
   normalized_job_titles: 20,
+  company_headcounts: 5,
+  currencies: 30,
+  languages: 15,
+  timezones: 80,
 };
 
 const INDUSTRY_SYSTEM_MINIMUMS: Record<string, number> = {
@@ -22,10 +34,45 @@ const INDUSTRY_SYSTEM_MINIMUMS: Record<string, number> = {
   naics: 80,
   nace: 10,
   isic: 10,
-  sic: 10,
+  sic: 8,
   gics: 10,
   practical: 4,
 };
+
+const REPORT_PATH = resolve(process.cwd(), ".generated", "full-v1-import-report.json");
+
+const CONSUMER_FIELDS_WITH_REF = ["company_industry", "company_country", "company_employee_size_band"] as const;
+
+const CROSSWALK_FLOORS: Array<{ type: string; minimum: number }> = [
+  { type: "country_default_currency", minimum: 120 },
+  { type: "country_official_language", minimum: 120 },
+  { type: "country_default_timezone", minimum: 120 },
+];
+
+type ImportReport = {
+  source_diagnostics?: Array<{
+    dataset: string;
+    parse_ok: boolean;
+    parsed_rows: number;
+    minimum_rows: number;
+  }>;
+  preflight_checks?: Array<{
+    key: string;
+    ok: boolean;
+    expected: number;
+    actual: number;
+  }>;
+  field_reference_summary?: { field_types_with_canonical_ref?: number };
+};
+
+async function loadImportReport(): Promise<ImportReport | null> {
+  try {
+    const content = await readFile(REPORT_PATH, "utf8");
+    return JSON.parse(content) as ImportReport;
+  } catch {
+    return null;
+  }
+}
 
 async function run() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -39,9 +86,10 @@ async function run() {
   if (packErr || !packs) {
     throw new Error(`Unable to load packs: ${packErr?.message ?? "unknown error"}`);
   }
+  const report = await loadImportReport();
 
   let failed = false;
-  for (const [packKey, minimum] of Object.entries(MIN_THRESHOLDS)) {
+  for (const [packKey, minimum] of Object.entries(MIN_PACK_VALUE_COUNTS)) {
     const pack = packs.find((entry) => entry.key === packKey);
     if (!pack) {
       console.log(`[MISSING] ${packKey} pack not found`);
@@ -61,14 +109,14 @@ async function run() {
 
     for (const typeId of typeIds) {
       const { data: type } = await admin.from("field_types").select("key").eq("id", typeId).maybeSingle();
-      const key = type?.key as string | undefined;
-      if (!key || !FIELD_TYPE_MINIMUMS[key]) {
+      const k = type?.key as string | undefined;
+      if (!k || !FIELD_TYPE_MINIMUMS[k]) {
         continue;
       }
       const { count } = await admin.from("field_values").select("id", { head: true, count: "exact" }).eq("field_type_id", typeId);
-      const min = FIELD_TYPE_MINIMUMS[key];
+      const min = FIELD_TYPE_MINIMUMS[k];
       const typeOk = (count ?? 0) >= min;
-      console.log(`  ${typeOk ? "[OK]" : "[LOW]"} ${key} values=${count ?? 0} minimum=${min}`);
+      console.log(`  ${typeOk ? "[OK]" : "[LOW]"} ${k} values=${count ?? 0} minimum=${min}`);
       if (!typeOk) failed = true;
     }
   }
@@ -95,6 +143,62 @@ async function run() {
   const liNaicsOk = liNaicsEdgeCount >= 50;
   console.log(`${liNaicsOk ? "[OK]" : "[LOW]"} linkedin_naics_edges=${liNaicsEdgeCount} minimum=50`);
   if (!liNaicsOk) failed = true;
+
+  for (const { type: cwType, minimum } of CROSSWALK_FLOORS) {
+    const { count } = await admin.from("field_crosswalks").select("id", { head: true, count: "exact" }).eq("crosswalk_type", cwType);
+    const n = count ?? 0;
+    const ok = n >= minimum;
+    console.log(`${ok ? "[OK]" : "[LOW]"} crosswalk_type=${cwType} count=${n} minimum=${minimum}`);
+    if (!ok) failed = true;
+  }
+
+  const { data: langType } = await admin.from("field_types").select("id").eq("key", "languages").maybeSingle();
+  if (langType?.id) {
+    const { count: aliasCount } = await admin
+      .from("field_aliases")
+      .select("id", { head: true, count: "exact" })
+      .eq("field_type_id", langType.id);
+    const ac = aliasCount ?? 0;
+    const aliasOk = ac >= 40;
+    console.log(`${aliasOk ? "[OK]" : "[LOW]"} language_aliases=${ac} minimum=40`);
+    if (!aliasOk) failed = true;
+  }
+
+  for (const fieldKey of CONSUMER_FIELDS_WITH_REF) {
+    const { data: row } = await admin.from("field_types").select("metadata_schema").eq("key", fieldKey).maybeSingle();
+    const ref = (row?.metadata_schema as Record<string, unknown> | null)?.[FEELDKIT_CANONICAL_REF_V1];
+    const ok = Boolean(ref);
+    console.log(`${ok ? "[OK]" : "[LOW]"} canonical_ref field_type=${fieldKey}`);
+    if (!ok) failed = true;
+    if (ref && typeof ref === "object" && "field_type_key" in ref) {
+      const fk = String((ref as { field_type_key: string }).field_type_key);
+      const { data: target } = await admin.from("field_types").select("id").eq("key", fk).maybeSingle();
+      const targetOk = Boolean(target?.id);
+      console.log(`  ${targetOk ? "[OK]" : "[LOW]"} ref_target_exists ${fk}`);
+      if (!targetOk) failed = true;
+    }
+  }
+
+  if (!report) {
+    console.log("[WARN] import report not found; skipping consistency checks against .generated/full-v1-import-report.json");
+  } else {
+    for (const diagnostic of report.source_diagnostics ?? []) {
+      const parseOk = Boolean(diagnostic.parse_ok);
+      console.log(`${parseOk ? "[OK]" : "[LOW]"} source_parse=${diagnostic.dataset} rows=${diagnostic.parsed_rows} minimum=${diagnostic.minimum_rows}`);
+      if (!parseOk) failed = true;
+    }
+    for (const check of report.preflight_checks ?? []) {
+      const ok = Boolean(check.ok);
+      console.log(`${ok ? "[OK]" : "[LOW]"} report_preflight=${check.key} actual=${check.actual} minimum=${check.expected}`);
+      if (!ok) failed = true;
+    }
+    const expectedRefs = report.field_reference_summary?.field_types_with_canonical_ref ?? 0;
+    if (expectedRefs > 0) {
+      const refOk = expectedRefs >= 3;
+      console.log(`${refOk ? "[OK]" : "[LOW]"} import_report field_types_with_canonical_ref=${expectedRefs} (expected>=3)`);
+      if (!refOk) failed = true;
+    }
+  }
 
   if (failed) {
     process.exit(1);

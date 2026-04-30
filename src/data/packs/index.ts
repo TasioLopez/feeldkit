@@ -4,10 +4,11 @@ import { geoSubdivisionsNlSeed } from "@/data/packs/geo/subdivisions-netherlands
 import { currenciesSeed } from "@/data/packs/standards/currencies.seed";
 import { languagesSeed } from "@/data/packs/standards/languages.seed";
 import { timezonesSeed } from "@/data/packs/standards/timezones.seed";
-import { employeeBandsSeed } from "@/data/packs/company/employee-bands.seed";
-import { revenueBandsSeed } from "@/data/packs/company/revenue-bands.seed";
-import { fundingStagesSeed } from "@/data/packs/company/funding-stages.seed";
+import { companyConsumerSeed } from "@/data/packs/company/company-consumer.seed";
 import { companyTypesSeed } from "@/data/packs/company/company-types.seed";
+import { employeeBandsSeed } from "@/data/packs/company/employee-bands.seed";
+import { fundingStagesSeed } from "@/data/packs/company/funding-stages.seed";
+import { revenueBandsSeed } from "@/data/packs/company/revenue-bands.seed";
 import { practicalIndustriesSeed } from "@/data/packs/industry/practical-industries.seed";
 import { jobFunctionsSeed } from "@/data/packs/jobs/functions.seed";
 import { seniorityBandsSeed } from "@/data/packs/jobs/seniority-bands.seed";
@@ -27,10 +28,11 @@ export const seedPacks: SeedPack[] = [
   currenciesSeed,
   languagesSeed,
   timezonesSeed,
+  companyTypesSeed,
   employeeBandsSeed,
+  companyConsumerSeed,
   revenueBandsSeed,
   fundingStagesSeed,
-  companyTypesSeed,
   practicalIndustriesSeed,
   jobFunctionsSeed,
   seniorityBandsSeed,

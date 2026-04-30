@@ -12,4 +12,23 @@ describe("normalize service", () => {
     const result = await normalizeOne({ field_key: "technology_vendors", value: "GA4" });
     expect(result.match?.key).toBe("google-analytics");
   });
+
+  it("resolves company_industry through canonical ref to linkedin industry codes", async () => {
+    const result = await normalizeOne({ field_key: "company_industry", value: "Software" });
+    expect(result.status).toBe("matched");
+    expect(result.match?.key).toBe("computer-software");
+    expect(result.trace?.resolved_via).toBe("canonical_ref");
+    expect(result.trace?.consumer_field_key).toBe("company_industry");
+    expect(result.trace?.canonical_field_key).toBe("linkedin_industry_codes");
+  });
+
+  it("prefers locale-aligned language aliases when display_language is set", async () => {
+    const result = await normalizeOne({
+      field_key: "languages",
+      value: "en",
+      context: { display_language: "en" },
+    });
+    expect(result.status).toBe("matched");
+    expect(result.match?.key).toBe("en");
+  });
 });

@@ -8,14 +8,25 @@ async function run() {
     console.error("Usage: npm run export:pack -- <pack-key>");
     process.exit(1);
   }
-  const pack = seedPacks.find((entry) => entry.key === packKey);
-  if (!pack) {
+  const packsToExport =
+    packKey === "standards"
+      ? [...seedPacks].filter((entry) => entry.key.startsWith("standards_")).sort((a, b) => a.key.localeCompare(b.key))
+      : seedPacks.filter((entry) => entry.key === packKey);
+
+  if (!packsToExport.length) {
     console.error(`Pack not found: ${packKey}`);
     process.exit(1);
   }
 
   const exportDir = resolve(process.cwd(), ".generated", "exports");
   await mkdir(exportDir, { recursive: true });
+  if (packKey === "standards" && packsToExport.length > 1) {
+    const filePath = resolve(exportDir, "standards-modules.json");
+    await writeFile(filePath, JSON.stringify({ modules: packsToExport }, null, 2));
+    console.log(`Exported: ${filePath}`);
+    return;
+  }
+  const pack = packsToExport[0]!;
   const filePath = resolve(exportDir, `${pack.key}.json`);
   await writeFile(filePath, JSON.stringify(pack, null, 2));
   console.log(`Exported: ${filePath}`);

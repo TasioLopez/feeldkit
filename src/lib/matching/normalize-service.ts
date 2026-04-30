@@ -10,6 +10,7 @@ import { contextBoost } from "@/lib/matching/context-boost";
 import { classifyConfidence } from "@/lib/matching/confidence";
 import { enqueueReview } from "@/lib/matching/review-queue";
 import { getFieldRepository } from "@/lib/repositories/get-field-repository";
+import { resolveEnumValuesCanonicalField } from "@/lib/matching/field-reference-resolver";
 
 export const normalizeRequestSchema = z.object({
   field_key: z.string(),
@@ -21,21 +22,24 @@ export const normalizeRequestSchema = z.object({
 export async function normalizeOne(request: z.infer<typeof normalizeRequestSchema>) {
   const repo = getFieldRepository();
   const normalizedInput = normalizeText(request.value);
-  const fieldType = await repo.getFieldTypeByKey(request.field_key);
+  const consumerFieldType = await repo.getFieldTypeByKey(request.field_key);
+  const resolved = resolveEnumValuesCanonicalField(consumerFieldType);
+  const matchFieldKey = resolved?.canonicalFieldKey ?? request.field_key;
+  const fieldType = consumerFieldType;
   const fieldTypeId = fieldType?.id ?? null;
   const candidates = (
     await Promise.all([
-      exactAliasMatch(repo, request.field_key, request.value),
-      exactValueMatch(repo, request.field_key, request.value),
-      metadataCodeMatch(repo, request.field_key, request.value),
-      Promise.resolve(validationMatch(request.field_key, request.value, request.context)),
-      Promise.resolve(parserMatch(request.field_key, request.value, request.context)),
-      fuzzyMatch(repo, request.field_key, request.value),
+      exactAliasMatch(repo, matchFieldKey, request.value, request.context),
+      exactValueMatch(repo, matchFieldKey, request.value),
+      metadataCodeMatch(repo, matchFieldKey, request.value),
+      Promise.resolve(validationMatch(matchFieldKey, request.value, request.context)),
+      Promise.resolve(parserMatch(matchFieldKey, request.value, request.context)),
+      fuzzyMatch(repo, matchFieldKey, request.value),
     ])
   ).filter((candidate): candidate is NonNullable<typeof candidate> => Boolean(candidate));
 
   const top = candidates
-    .map((candidate) => contextBoost(request.field_key, candidate, request.context))
+    .map((candidate) => contextBoost(matchFieldKey, candidate, request.context))
     .sort((a, b) => b.confidence - a.confidence)[0];
 
   if (!top) {
@@ -61,6 +65,11 @@ export async function normalizeOne(request: z.infer<typeof normalizeRequestSchem
       needs_review: true,
       review_id: review.id,
       match: null,
+      trace: {
+        resolved_via: resolved ? ("canonical_ref" as const) : null,
+        consumer_field_key: resolved ? request.field_key : undefined,
+        canonical_field_key: resolved ? matchFieldKey : undefined,
+      },
     };
   }
 
@@ -93,6 +102,11 @@ export async function normalizeOne(request: z.infer<typeof normalizeRequestSchem
       key: top.value.key,
       label: top.value.label,
       metadata: top.value.metadata,
+    },
+    trace: {
+      resolved_via: resolved ? ("canonical_ref" as const) : null,
+      consumer_field_key: resolved ? request.field_key : undefined,
+      canonical_field_key: resolved ? matchFieldKey : undefined,
     },
   };
 }

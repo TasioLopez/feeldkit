@@ -28,6 +28,7 @@ type PackFieldTypeData = {
   key: string;
   name: string;
   totalValues: number;
+  canonicalRef?: { pack_key: string; field_type_key: string; relationship: string } | null;
   previewValues: Array<{ id: string; key: string; label: string }>;
 };
 
@@ -140,9 +141,16 @@ export function PacksExpandableTable({ packs }: Props) {
                             (details[pack.key] ?? []).map((type) => (
                               <div key={type.id} className="rounded-lg border border-border bg-background px-3 py-2">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <Link href={`/dashboard/field-types/${type.key}`} className="font-medium text-primary hover:underline">
-                                    {type.name}
-                                  </Link>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Link href={`/dashboard/field-types/${type.key}`} className="font-medium text-primary hover:underline">
+                                      {type.name}
+                                    </Link>
+                                    {type.canonicalRef ? (
+                                      <Badge variant="outline" className="font-mono text-[10px]">
+                                        ref {type.canonicalRef.pack_key}.{type.canonicalRef.field_type_key}
+                                      </Badge>
+                                    ) : null}
+                                  </div>
                                   <span className="text-xs text-muted-foreground">{type.totalValues} values</span>
                                 </div>
                                 <div className="mt-2 flex flex-wrap gap-2">

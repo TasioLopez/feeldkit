@@ -16,7 +16,7 @@ async function seedSupabase() {
   const summary = await ingestSeedBundle(admin, seedPacks, { sourceKeyPrefix: "seed", forceVersionSnapshot: false });
   const crosswalks = await ingestCrosswalksFromSeed(admin, seedCrosswalks, "seed-crosswalks");
   console.log(
-    `Supabase seed completed. packs=${summary.packs} field_types=${summary.fieldTypes} values=${summary.fieldValues} aliases=${summary.aliases} crosswalks=${crosswalks}`,
+    `Supabase seed completed. packs=${summary.packs} field_types=${summary.fieldTypes} values=${summary.fieldValues} aliases=${summary.aliases} crosswalks=${crosswalks.inserted}`,
   );
 }
 

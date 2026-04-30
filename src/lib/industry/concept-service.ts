@@ -14,15 +14,27 @@ type ConceptMapEntry = {
   label: string;
 };
 
-export async function ingestIndustryConceptGraphWithClient(admin: SupabaseClient, graph: IndustryConceptGraph): Promise<{
+export async function ingestIndustryConceptGraphWithClient(
+  admin: SupabaseClient,
+  graph: IndustryConceptGraph,
+  options?: { strict?: boolean },
+): Promise<{
   concepts: number;
   codes: number;
   edges: number;
+  concept_errors: number;
+  code_errors: number;
+  edge_errors: number;
+  skipped_edges_missing_nodes: number;
 }> {
   const conceptByNode = new Map<string, ConceptMapEntry>();
   let conceptCount = 0;
   let codeCount = 0;
   let edgeCount = 0;
+  let conceptErrors = 0;
+  let codeErrors = 0;
+  let edgeErrors = 0;
+  let skippedEdgesMissingNodes = 0;
 
   for (const node of graph.nodes) {
     const conceptKey = conceptKeyFromLabel(node.label);
@@ -43,6 +55,7 @@ export async function ingestIndustryConceptGraphWithClient(admin: SupabaseClient
       .select("id,key,label")
       .single();
     if (conceptErr || !conceptRow) {
+      conceptErrors += 1;
       continue;
     }
     conceptCount += 1;
@@ -52,7 +65,7 @@ export async function ingestIndustryConceptGraphWithClient(admin: SupabaseClient
       key: conceptRow.key as string,
       label: conceptRow.label as string,
     });
-    await admin.from("industry_concept_codes").upsert(
+    const { error: codeErr } = await admin.from("industry_concept_codes").upsert(
       {
         concept_id: conceptRow.id,
         code_system: node.codeSystem,
@@ -67,14 +80,21 @@ export async function ingestIndustryConceptGraphWithClient(admin: SupabaseClient
       },
       { onConflict: "code_system,code" },
     );
-    codeCount += 1;
+    if (codeErr) {
+      codeErrors += 1;
+    } else {
+      codeCount += 1;
+    }
   }
 
   for (const edge of graph.edges) {
     const from = conceptByNode.get(`${edge.fromSystem}:${edge.fromCode}`);
     const to = conceptByNode.get(`${edge.toSystem}:${edge.toCode}`);
-    if (!from || !to) continue;
-    await admin.from("industry_concept_edges").upsert(
+    if (!from || !to) {
+      skippedEdgesMissingNodes += 1;
+      continue;
+    }
+    const { error: edgeErr } = await admin.from("industry_concept_edges").upsert(
       {
         from_concept_id: from.id,
         to_concept_id: to.id,
@@ -89,14 +109,28 @@ export async function ingestIndustryConceptGraphWithClient(admin: SupabaseClient
       },
       { onConflict: "from_concept_id,to_concept_id,relation_type,source" },
     );
-    edgeCount += 1;
+    if (edgeErr) {
+      edgeErrors += 1;
+    } else {
+      edgeCount += 1;
+    }
   }
 
-  return {
+  const summary = {
     concepts: conceptCount,
     codes: codeCount,
     edges: edgeCount,
+    concept_errors: conceptErrors,
+    code_errors: codeErrors,
+    edge_errors: edgeErrors,
+    skipped_edges_missing_nodes: skippedEdgesMissingNodes,
   };
+  if (options?.strict && (conceptErrors > 0 || codeErrors > 0 || edgeErrors > 0)) {
+    throw new Error(
+      `ingestIndustryConceptGraphWithClient strict failure: concept_errors=${conceptErrors} code_errors=${codeErrors} edge_errors=${edgeErrors} skipped_edges_missing_nodes=${skippedEdgesMissingNodes}`,
+    );
+  }
+  return summary;
 }
 
 const INDUSTRY_FIELD_TYPE_BY_SYSTEM: Record<IndustryCodeSystem, string> = {
@@ -122,24 +156,39 @@ function valueKeyForSystem(system: IndustryCodeSystem, code: string): string {
 export async function mirrorIndustryConceptEdgesToFieldCrosswalks(
   admin: SupabaseClient,
   graph: IndustryConceptGraph,
-): Promise<number> {
+  options?: { strict?: boolean },
+): Promise<{
+  inserted: number;
+  skipped_missing_field_types: number;
+  skipped_missing_values: number;
+  errors: number;
+}> {
   const typeKeys = [...new Set(Object.values(INDUSTRY_FIELD_TYPE_BY_SYSTEM))];
   const { data: typeRows } = await admin.from("field_types").select("id,key").in("key", typeKeys);
   const typeIdByKey = new Map((typeRows ?? []).map((row) => [String(row.key), String(row.id)]));
   let inserted = 0;
+  let skippedMissingFieldTypes = 0;
+  let skippedMissingValues = 0;
+  let errors = 0;
   for (const edge of graph.edges) {
     const fromTypeKey = INDUSTRY_FIELD_TYPE_BY_SYSTEM[edge.fromSystem];
     const toTypeKey = INDUSTRY_FIELD_TYPE_BY_SYSTEM[edge.toSystem];
     const fromTypeId = typeIdByKey.get(fromTypeKey);
     const toTypeId = typeIdByKey.get(toTypeKey);
-    if (!fromTypeId || !toTypeId) continue;
+    if (!fromTypeId || !toTypeId) {
+      skippedMissingFieldTypes += 1;
+      continue;
+    }
     const fromValueKey = valueKeyForSystem(edge.fromSystem, edge.fromCode);
     const toValueKey = valueKeyForSystem(edge.toSystem, edge.toCode);
     const [{ data: fromValue }, { data: toValue }] = await Promise.all([
       admin.from("field_values").select("id").eq("field_type_id", fromTypeId).eq("key", fromValueKey).maybeSingle(),
       admin.from("field_values").select("id").eq("field_type_id", toTypeId).eq("key", toValueKey).maybeSingle(),
     ]);
-    if (!fromValue?.id || !toValue?.id) continue;
+    if (!fromValue?.id || !toValue?.id) {
+      skippedMissingValues += 1;
+      continue;
+    }
     const { error } = await admin.from("field_crosswalks").upsert(
       {
         from_field_type_id: fromTypeId,
@@ -157,17 +206,42 @@ export async function mirrorIndustryConceptEdgesToFieldCrosswalks(
       { onConflict: "from_value_id,to_value_id,crosswalk_type" },
     );
     if (!error) inserted += 1;
+    else errors += 1;
   }
-  return inserted;
+  if (options?.strict && (errors > 0 || skippedMissingFieldTypes > 0)) {
+    throw new Error(
+      `mirrorIndustryConceptEdgesToFieldCrosswalks strict failure: errors=${errors} skipped_missing_field_types=${skippedMissingFieldTypes} skipped_missing_values=${skippedMissingValues}`,
+    );
+  }
+  return {
+    inserted,
+    skipped_missing_field_types: skippedMissingFieldTypes,
+    skipped_missing_values: skippedMissingValues,
+    errors,
+  };
 }
 
 export async function ingestIndustryConceptGraph(graph: IndustryConceptGraph): Promise<{
   concepts: number;
   codes: number;
   edges: number;
+  concept_errors: number;
+  code_errors: number;
+  edge_errors: number;
+  skipped_edges_missing_nodes: number;
 }> {
   const admin = getSupabaseServiceClient();
-  if (!admin) return { concepts: 0, codes: 0, edges: 0 };
+  if (!admin) {
+    return {
+      concepts: 0,
+      codes: 0,
+      edges: 0,
+      concept_errors: 0,
+      code_errors: 0,
+      edge_errors: 0,
+      skipped_edges_missing_nodes: 0,
+    };
+  }
   return ingestIndustryConceptGraphWithClient(admin, graph);
 }
 

@@ -1,9 +1,9 @@
 import type { SeedPack } from "@/data/packs/types";
 
 export const currenciesSeed: SeedPack = {
-  key: "standards",
-  name: "Standards",
-  version: "1.0.0",
+  key: "standards_currencies",
+  name: "Standards — Currencies",
+  version: "2.0.0",
   source: "iso4217-sample",
   fieldTypes: [
     {

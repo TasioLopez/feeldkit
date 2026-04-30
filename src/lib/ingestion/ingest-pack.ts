@@ -1,15 +1,43 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { normalizeText } from "@/lib/matching/normalize-text";
 import type { SeedPack } from "@/data/packs/types";
+import { FEELDKIT_CANONICAL_REF_V1, FEELDKIT_METADATA_LOCK } from "@/lib/domain/canonical-ref";
 
 function packCategory(key: string): string {
-  if (key === "geo" || key === "standards") {
+  if (key === "geo" || key === "standards" || key.startsWith("standards_")) {
     return "standards";
   }
   if (key === "email_domain" || key === "tech") {
     return "normalization_map";
   }
   return "taxonomy";
+}
+
+export function mergeFieldTypeMetadataSchema(
+  existing: Record<string, unknown> | null | undefined,
+  incoming: Record<string, unknown> | null | undefined,
+  opts?: { forceOverwrite?: boolean },
+): Record<string, unknown> {
+  const ex: Record<string, unknown> = { ...(existing ?? {}) };
+  const inc: Record<string, unknown> = { ...(incoming ?? {}) };
+  const force = opts?.forceOverwrite === true;
+  if (force) {
+    return { ...ex, ...inc };
+  }
+  if (ex[FEELDKIT_METADATA_LOCK] === true) {
+    return ex;
+  }
+  const out: Record<string, unknown> = { ...ex };
+  for (const [k, v] of Object.entries(inc)) {
+    if (out[k] === undefined || out[k] === null) {
+      out[k] = v;
+    }
+  }
+  const existingRef = ex[FEELDKIT_CANONICAL_REF_V1];
+  if (existingRef !== undefined && existingRef !== null) {
+    out[FEELDKIT_CANONICAL_REF_V1] = existingRef;
+  }
+  return out;
 }
 
 type IngestResult = {
@@ -100,6 +128,19 @@ export async function ingestPack(
   let updatedValues = 0;
   let skippedProtectedValues = 0;
   for (const ft of pack.fieldTypes) {
+    const { data: existingType } = await admin
+      .from("field_types")
+      .select("id,metadata_schema,supports_locale")
+      .eq("field_pack_id", packId)
+      .eq("key", ft.key)
+      .maybeSingle();
+    const existingSchema = (existingType?.metadata_schema as Record<string, unknown> | null) ?? null;
+    const seedSchema = (ft.metadata_schema as Record<string, unknown> | undefined) ?? {};
+    const mergedSchema = mergeFieldTypeMetadataSchema(existingSchema, seedSchema, {
+      forceOverwrite: opts?.forceOverwrite,
+    });
+    const supportsLocale =
+      ft.key === "languages" || Boolean((existingType as { supports_locale?: boolean } | null)?.supports_locale);
     const { data: typeRow, error: typeErr } = await admin
       .from("field_types")
       .upsert(
@@ -113,10 +154,10 @@ export async function ingestPack(
           is_public: true,
           supports_hierarchy: false,
           supports_relationships: false,
-          supports_locale: false,
+          supports_locale: supportsLocale,
           supports_validation: false,
           supports_crosswalks: true,
-          metadata_schema: {},
+          metadata_schema: mergedSchema,
         },
         { onConflict: "field_pack_id,key" },
       )

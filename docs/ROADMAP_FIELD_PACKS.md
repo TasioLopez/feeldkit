@@ -1,5 +1,11 @@
 # FeeldKit Roadmap Field Packs
 
+This document is the domain-pack inventory roadmap. Product-level direction,
+execution phases, and mapping intelligence strategy are defined in:
+- `docs/VISION.md`
+- `docs/ROADMAP.md`
+- `docs/PLAN_MAPPING_INTELLIGENCE_MASTER.md`
+
 ## V1 Packs (Engine-Proving Scope)
 1. Countries
 2. Subdivisions (Netherlands first)

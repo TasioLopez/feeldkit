@@ -1,8 +1,10 @@
-import { loadLinkedinIndustryNodes } from "./linkedin-industries-source";
+import { loadLinkedinIndustryNodesWithDiagnostics } from "./linkedin-industries-source";
 import { buildGlobalSystemNodes, inferNaicsToGlobalEdges } from "./industry-global-systems-source";
 import { loadLinkedinNaicsCrosswalk } from "./industry-naics-crosswalk-source";
 import { buildPracticalOverlayNodes, inferPracticalToConceptEdges } from "./industry-practical-overlay-source";
 import type { IndustryCodeNode, IndustryConceptGraph, IndustryCrosswalkEdge } from "./industry-interop-types";
+import type { LinkedinIndustrySourceDiagnostics } from "./linkedin-industries-source";
+import type { LinkedinNaicsSourceDiagnostics } from "./industry-naics-crosswalk-source";
 
 function dedupeNodes(nodes: IndustryCodeNode[]): IndustryCodeNode[] {
   const map = new Map<string, IndustryCodeNode>();
@@ -23,12 +25,35 @@ function dedupeEdges(edges: IndustryCrosswalkEdge[]): IndustryCrosswalkEdge[] {
 }
 
 export async function buildIndustryConceptGraph(): Promise<IndustryConceptGraph> {
-  const [linkedinNodes, naicsCrosswalk] = await Promise.all([loadLinkedinIndustryNodes(), loadLinkedinNaicsCrosswalk()]);
+  const result = await buildIndustryConceptGraphWithDiagnostics();
+  return result.graph;
+}
+
+export async function buildIndustryConceptGraphWithDiagnostics(options?: {
+  forceSnapshots?: boolean;
+}): Promise<{
+  graph: IndustryConceptGraph;
+  sourceDiagnostics: {
+    linkedin: LinkedinIndustrySourceDiagnostics;
+    linkedin_naics: LinkedinNaicsSourceDiagnostics;
+  };
+}> {
+  const [linkedinSource, naicsCrosswalk] = await Promise.all([
+    loadLinkedinIndustryNodesWithDiagnostics({ forceSnapshots: options?.forceSnapshots }),
+    loadLinkedinNaicsCrosswalk({ forceSnapshots: options?.forceSnapshots }),
+  ]);
+  const linkedinNodes = linkedinSource.nodes;
   const practicalNodes = buildPracticalOverlayNodes();
   const globalNodes = buildGlobalSystemNodes();
   const nodes = dedupeNodes([...linkedinNodes, ...naicsCrosswalk.naicsNodes, ...globalNodes, ...practicalNodes]);
   const inferredNaicsEdges = inferNaicsToGlobalEdges(naicsCrosswalk.naicsNodes, globalNodes);
   const practicalEdges = inferPracticalToConceptEdges(practicalNodes, linkedinNodes);
   const edges = dedupeEdges([...naicsCrosswalk.edges, ...inferredNaicsEdges, ...practicalEdges]);
-  return { nodes, edges };
+  return {
+    graph: { nodes, edges },
+    sourceDiagnostics: {
+      linkedin: linkedinSource.diagnostics,
+      linkedin_naics: naicsCrosswalk.diagnostics,
+    },
+  };
 }

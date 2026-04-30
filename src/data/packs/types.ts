@@ -8,6 +8,8 @@ export interface SeedValue {
 export interface SeedFieldType {
   key: string;
   name: string;
+  /** Merged into `field_types.metadata_schema` on ingest (see `feeldkit.canonical_ref.v1`). */
+  metadata_schema?: Record<string, unknown>;
   values: SeedValue[];
 }
 

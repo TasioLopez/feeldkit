@@ -11,8 +11,16 @@ async function run() {
     process.exit(1);
   }
 
-  const pack = seedPacks.find((entry) => entry.key === packKey);
-  if (!pack) {
+  const standardsModules =
+    packKey === "standards"
+      ? [...seedPacks].filter((entry) => entry.key.startsWith("standards_")).sort((a, b) => a.key.localeCompare(b.key))
+      : null;
+  const packsToImport =
+    standardsModules && standardsModules.length > 0
+      ? standardsModules
+      : seedPacks.filter((entry) => entry.key === packKey);
+
+  if (!packsToImport.length) {
     console.error(`Pack not found: ${packKey}`);
     process.exit(1);
   }
@@ -21,34 +29,40 @@ async function run() {
   await mkdir(generatedDir, { recursive: true });
   const registryPath = resolve(generatedDir, "imports-registry.json");
   const previous = await readFile(registryPath, "utf8").catch(() => "[]");
-  const registry = JSON.parse(previous) as Array<Record<string, unknown>>;
+  let registry = JSON.parse(previous) as Array<Record<string, unknown>>;
 
-  const next = [
-    ...registry.filter((entry) => entry.pack_key !== pack.key),
-    {
-      pack_key: pack.key,
-      imported_at: new Date().toISOString(),
-      version: pack.version,
-      source: pack.source,
-      field_type_count: pack.fieldTypes.length,
-    },
-  ];
-  await writeFile(registryPath, JSON.stringify(next, null, 2));
+  for (const pack of packsToImport) {
+    registry = [
+      ...registry.filter((entry) => entry.pack_key !== pack.key),
+      {
+        pack_key: pack.key,
+        imported_at: new Date().toISOString(),
+        version: pack.version,
+        source: pack.source,
+        field_type_count: pack.fieldTypes.length,
+      },
+    ];
+  }
+  await writeFile(registryPath, JSON.stringify(registry, null, 2));
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
-    console.log(`Imported pack metadata only: ${pack.key} (set NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY to write DB)`);
+    console.log(
+      `Imported pack metadata only: ${packsToImport.map((p) => p.key).join(", ")} (set NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY to write DB)`,
+    );
     return;
   }
   const admin = createClient(url, key);
-  const result = await ingestPack(admin, pack, {
-    sourceKey: `manual-import:${pack.key}`,
-    forceVersionSnapshot: true,
-  });
-  console.log(
-    `Imported pack to DB: ${pack.key} (field_types=${result.fieldTypes}, values=${result.fieldValues}, aliases=${result.aliases})`,
-  );
+  for (const pack of packsToImport) {
+    const result = await ingestPack(admin, pack, {
+      sourceKey: `manual-import:${pack.key}`,
+      forceVersionSnapshot: true,
+    });
+    console.log(
+      `Imported pack to DB: ${pack.key} (field_types=${result.fieldTypes}, values=${result.fieldValues}, aliases=${result.aliases})`,
+    );
+  }
 }
 
 run().catch((error) => {

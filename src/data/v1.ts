@@ -1,5 +1,6 @@
 import { normalizeText } from "@/lib/matching/normalize-text";
 import type { FieldAlias, FieldCrosswalk, FieldPack, FieldType, FieldValue } from "@/lib/domain/types";
+import { buildCanonicalRefV1 } from "@/lib/domain/canonical-ref";
 
 const pack = (overrides: Partial<FieldPack>): FieldPack => ({
   id: crypto.randomUUID(),
@@ -80,10 +81,22 @@ const jobsPack = pack({
   description: "Functions, seniority bands and title normalization.",
   category: "taxonomy",
 });
-const standardsPack = pack({
-  key: "standards",
-  name: "Standards",
-  description: "Currencies, languages and timezones.",
+const standardsCurrenciesPack = pack({
+  key: "standards_currencies",
+  name: "Standards — Currencies",
+  description: "ISO currency codes and overlays.",
+  category: "standards",
+});
+const standardsLanguagesPack = pack({
+  key: "standards_languages",
+  name: "Standards — Languages",
+  description: "BCP47-first language tags and aliases.",
+  category: "standards",
+});
+const standardsTimezonesPack = pack({
+  key: "standards_timezones",
+  name: "Standards — Timezones",
+  description: "IANA time zones.",
   category: "standards",
 });
 const emailPack = pack({
@@ -105,7 +118,17 @@ const techPack = pack({
   category: "normalization_map",
 });
 
-export const fieldPacks: FieldPack[] = [geoPack, companyPack, jobsPack, standardsPack, emailPack, industryPack, techPack];
+export const fieldPacks: FieldPack[] = [
+  geoPack,
+  companyPack,
+  jobsPack,
+  standardsCurrenciesPack,
+  standardsLanguagesPack,
+  standardsTimezonesPack,
+  emailPack,
+  industryPack,
+  techPack,
+];
 
 const countriesType = fieldType(geoPack.id, {
   key: "countries",
@@ -114,17 +137,55 @@ const countriesType = fieldType(geoPack.id, {
   supportsCrosswalks: true,
 });
 const subdivisionsType = fieldType(geoPack.id, { key: "subdivisions", name: "Subdivisions", kind: "reference", supportsHierarchy: true });
-const currenciesType = fieldType(standardsPack.id, { key: "currencies", name: "Currencies", kind: "reference" });
-const languagesType = fieldType(standardsPack.id, { key: "languages", name: "Languages", kind: "reference" });
-const timezoneType = fieldType(standardsPack.id, { key: "timezones", name: "Timezones", kind: "reference" });
+const currenciesType = fieldType(standardsCurrenciesPack.id, { key: "currencies", name: "Currencies", kind: "reference" });
+const languagesType = fieldType(standardsLanguagesPack.id, {
+  key: "languages",
+  name: "Languages",
+  kind: "reference",
+  supportsLocale: true,
+});
+const timezoneType = fieldType(standardsTimezonesPack.id, { key: "timezones", name: "Timezones", kind: "reference" });
 const employeeBandType = fieldType(companyPack.id, { key: "employee_size_bands", name: "Employee Size Bands", supportsValidation: true });
 const revenueBandType = fieldType(companyPack.id, { key: "revenue_bands", name: "Revenue Bands", supportsValidation: true });
 const fundingStageType = fieldType(companyPack.id, { key: "funding_stages", name: "Funding Stages" });
 const companyTypeType = fieldType(companyPack.id, { key: "company_types", name: "Company Types" });
+const companyIndustryConsumerType = fieldType(companyPack.id, {
+  key: "company_industry",
+  name: "Company industry (consumer)",
+  metadataSchema: buildCanonicalRefV1({
+    pack_key: "industry",
+    field_type_key: "linkedin_industry_codes",
+    relationship: "enum_values",
+  }),
+});
+const companyCountryConsumerType = fieldType(companyPack.id, {
+  key: "company_country",
+  name: "Company country (consumer)",
+  metadataSchema: buildCanonicalRefV1({
+    pack_key: "geo",
+    field_type_key: "countries",
+    relationship: "enum_values",
+  }),
+});
+const companyHeadcountConsumerType = fieldType(companyPack.id, {
+  key: "company_employee_size_band",
+  name: "Company employee size (consumer)",
+  metadataSchema: buildCanonicalRefV1({
+    pack_key: "jobs",
+    field_type_key: "company_headcounts",
+    relationship: "enum_values",
+  }),
+});
 const jobFunctionType = fieldType(jobsPack.id, { key: "job_functions", name: "Job Functions" });
+const companyHeadcountsType = fieldType(jobsPack.id, { key: "company_headcounts", name: "Company Headcounts" });
 const seniorityType = fieldType(jobsPack.id, { key: "seniority_bands", name: "Seniority Bands" });
 const normalizedTitleType = fieldType(jobsPack.id, { key: "normalized_job_titles", name: "Normalized Job Titles", supportsCrosswalks: true });
 const industryType = fieldType(industryPack.id, { key: "practical_industry", name: "Practical Industry", supportsCrosswalks: true });
+const linkedinIndustryType = fieldType(industryPack.id, {
+  key: "linkedin_industry_codes",
+  name: "LinkedIn industry codes",
+  supportsCrosswalks: true,
+});
 const techCategoryType = fieldType(techPack.id, { key: "technology_categories", name: "Technology Categories" });
 const techVendorType = fieldType(techPack.id, { key: "technology_vendors", name: "Technology Vendors", supportsCrosswalks: true });
 const freeEmailType = fieldType(emailPack.id, { key: "free_email_providers", name: "Free Email Providers", kind: "map" });
@@ -140,10 +201,15 @@ export const fieldTypes: FieldType[] = [
   revenueBandType,
   fundingStageType,
   companyTypeType,
+  companyIndustryConsumerType,
+  companyCountryConsumerType,
+  companyHeadcountConsumerType,
   jobFunctionType,
+  companyHeadcountsType,
   seniorityType,
   normalizedTitleType,
   industryType,
+  linkedinIndustryType,
   techCategoryType,
   techVendorType,
   freeEmailType,
@@ -178,6 +244,9 @@ export const fieldValues: FieldValue[] = [
   value(normalizedTitleType.id, "sales-representative", "Sales Representative"),
   value(industryType.id, "saas", "SaaS"),
   value(industryType.id, "fintech", "FinTech"),
+  value(linkedinIndustryType.id, "computer-software", "Computer Software", { source_standard: "linkedin_v2" }),
+  value(companyHeadcountsType.id, "11-50", "11-50", { source_standard: "search_leads_openapi" }),
+  value(companyHeadcountsType.id, "51-200", "51-200", { source_standard: "search_leads_openapi" }),
   value(techCategoryType.id, "analytics", "Analytics"),
   value(techCategoryType.id, "crm", "CRM"),
   value(techVendorType.id, "google-analytics", "Google Analytics"),
@@ -205,6 +274,10 @@ export const fieldAliases: FieldAlias[] = [
   alias(subdivisionsType.id, getValue(subdivisionsType.id, "nl-zuid-holland").id, "Zuid Holland"),
   alias(currenciesType.id, getValue(currenciesType.id, "eur").id, "€"),
   alias(languagesType.id, getValue(languagesType.id, "nl").id, "NL"),
+  alias(languagesType.id, getValue(languagesType.id, "en").id, "English", 0.95),
+  alias(languagesType.id, getValue(languagesType.id, "en").id, "Eng", 0.9),
+  alias(languagesType.id, getValue(languagesType.id, "en").id, "en", 0.99),
+  alias(linkedinIndustryType.id, getValue(linkedinIndustryType.id, "computer-software").id, "Software", 0.95),
   alias(employeeBandType.id, getValue(employeeBandType.id, "11-50").id, "11-50 employees"),
   alias(fundingStageType.id, getValue(fundingStageType.id, "series-a").id, "SeriesA"),
   alias(normalizedTitleType.id, getValue(normalizedTitleType.id, "vp-engineering").id, "VP Eng"),

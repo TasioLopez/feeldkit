@@ -27,15 +27,25 @@ export async function ingestCrosswalksFromSeed(
   admin: SupabaseClient,
   crosswalks: CrosswalkSeed[],
   source = "seed-crosswalks",
-): Promise<number> {
+  options?: { strict?: boolean },
+): Promise<{
+  inserted: number;
+  skipped_missing_field_type: number;
+  skipped_missing_value: number;
+  errors: number;
+}> {
   const { data: fieldTypes } = await admin.from("field_types").select("id,key");
   const typeIdByKey = new Map((fieldTypes ?? []).map((row) => [row.key as string, row.id as string]));
 
   let inserted = 0;
+  let skippedMissingFieldType = 0;
+  let skippedMissingValue = 0;
+  let errors = 0;
   for (const cw of crosswalks) {
     const fromTypeId = typeIdByKey.get(cw.fromFieldTypeKey);
     const toTypeId = typeIdByKey.get(cw.toFieldTypeKey);
     if (!fromTypeId || !toTypeId) {
+      skippedMissingFieldType += 1;
       continue;
     }
     const [{ data: fromValue }, { data: toValue }] = await Promise.all([
@@ -53,6 +63,7 @@ export async function ingestCrosswalksFromSeed(
         .maybeSingle(),
     ]);
     if (!fromValue?.id || !toValue?.id) {
+      skippedMissingValue += 1;
       continue;
     }
     const { error } = await admin.from("field_crosswalks").upsert(
@@ -69,14 +80,25 @@ export async function ingestCrosswalksFromSeed(
       { onConflict: "from_value_id,to_value_id,crosswalk_type" },
     );
     if (!error) inserted += 1;
+    else errors += 1;
   }
-  return inserted;
+  if (options?.strict && (errors > 0 || skippedMissingFieldType > 0 || skippedMissingValue > 0)) {
+    throw new Error(
+      `ingestCrosswalksFromSeed strict failure: errors=${errors} skipped_missing_field_type=${skippedMissingFieldType} skipped_missing_value=${skippedMissingValue}`,
+    );
+  }
+  return {
+    inserted,
+    skipped_missing_field_type: skippedMissingFieldType,
+    skipped_missing_value: skippedMissingValue,
+    errors,
+  };
 }
 
 export async function ingestSeedBundle(
   admin: SupabaseClient,
   packs: SeedPack[],
-  options?: { sourceKeyPrefix?: string; forceVersionSnapshot?: boolean },
+  options?: { sourceKeyPrefix?: string; forceVersionSnapshot?: boolean; forceOverwrite?: boolean },
 ): Promise<{
   packs: number;
   fieldTypes: number;
@@ -97,6 +119,7 @@ export async function ingestSeedBundle(
     const result = await ingestPack(admin, pack, {
       sourceKey: `${options?.sourceKeyPrefix ?? "seed"}:${pack.key}`,
       forceVersionSnapshot: options?.forceVersionSnapshot,
+      forceOverwrite: options?.forceOverwrite,
     });
     fieldTypes += result.fieldTypes;
     fieldValues += result.fieldValues;
