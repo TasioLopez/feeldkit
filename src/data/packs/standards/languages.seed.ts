@@ -2,7 +2,7 @@ import type { SeedPack } from "@/data/packs/types";
 
 export const languagesSeed: SeedPack = {
   key: "standards_languages",
-  name: "Standards — Languages",
+  name: "Languages",
   version: "2.0.0",
   source: "iso639-sample",
   fieldTypes: [

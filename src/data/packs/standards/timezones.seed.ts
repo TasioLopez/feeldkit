@@ -2,7 +2,7 @@ import type { SeedPack } from "@/data/packs/types";
 
 export const timezonesSeed: SeedPack = {
   key: "standards_timezones",
-  name: "Standards — Timezones",
+  name: "Timezones",
   version: "2.0.0",
   source: "iana-sample",
   fieldTypes: [

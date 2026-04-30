@@ -152,7 +152,7 @@ export const standardsSourceAdapter: SourceAdapter = {
 
     const standardsCurrencies: SeedPack = {
       key: "standards_currencies",
-      name: "Standards — Currencies",
+      name: "Currencies",
       version: "2.0.0",
       source: "official+overlay",
       fieldTypes: [
@@ -172,7 +172,7 @@ export const standardsSourceAdapter: SourceAdapter = {
 
     const standardsLanguages: SeedPack = {
       key: "standards_languages",
-      name: "Standards — Languages",
+      name: "Languages",
       version: "2.0.0",
       source: "official+overlay",
       fieldTypes: [
@@ -186,7 +186,7 @@ export const standardsSourceAdapter: SourceAdapter = {
 
     const standardsTimezones: SeedPack = {
       key: "standards_timezones",
-      name: "Standards — Timezones",
+      name: "Timezones",
       version: "2.0.0",
       source: "official+overlay",
       fieldTypes: [

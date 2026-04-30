@@ -87,7 +87,7 @@ For full production V1 imports (geo, modular `standards_*` packs, industry, jobs
 
 - **Canonical refs:** consumer `field_types` (for example `company_industry`) store `feeldkit.canonical_ref.v1` on `metadata_schema`. Re-imports merge metadata unless `feeldkit.metadata_lock` is true or you pass a force-overwrite path through ingestion options.
 - **Import report:** `.generated/full-v1-import-report.json` includes `field_reference_summary.field_types_with_canonical_ref` after each full import.
-- **Standards modules:** `standards_currencies`, `standards_languages`, and `standards_timezones` share `field_packs.category = standards` but have distinct `field_packs.key` values. Legacy rows keyed only as `standards` may remain until you archive them after a successful migration.
+- **Standards modules:** `standards_currencies`, `standards_languages`, and `standards_timezones` share `field_packs.category = standards` with short display names (`Currencies`, `Languages`, `Timezones`). Migration `20260430200000_remove_legacy_standards_pack.sql` drops the legacy monolithic `standards` pack once modular packs exist.
 - **Country defaults:** deterministic `geo.countries` → currency/language/timezone crosswalks are built from `src/data/country-iso2-defaults.json` (ISO-aligned defaults) joined to each country value’s `metadata.iso2` during `import:full-v1`.
 - **Operator tools:** `/dashboard/packs/data` exposes parsed canonical refs; `/dashboard/packs/country-bundle?country_iso2=NL` (or `country_key=…`) returns bundled related standards with crosswalk trace.
 - **Rollback:** refs are metadata-first—remove or adjust seed `metadata_schema`, or restore a prior `field_pack_versions` snapshot, then re-run `import:full-v1` without forcing overwrites on locked rows.

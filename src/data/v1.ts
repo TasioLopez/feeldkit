@@ -83,7 +83,7 @@ const jobsPack = pack({
 });
 const standardsCurrenciesPack = pack({
   key: "standards_currencies",
-  name: "Standards — Currencies",
+  name: "Currencies",
   description: "ISO currency codes and overlays.",
   category: "standards",
 });
@@ -95,7 +95,7 @@ const standardsLanguagesPack = pack({
 });
 const standardsTimezonesPack = pack({
   key: "standards_timezones",
-  name: "Standards — Timezones",
+  name: "Timezones",
   description: "IANA time zones.",
   category: "standards",
 });
