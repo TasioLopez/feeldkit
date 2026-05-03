@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
 import { listIndustryEdges, listIndustryEdgesWithContext } from "@/lib/industry/concept-service";
+import { classifyWithPolicy } from "@/lib/matching/inference/policy";
 import { decideIndustryEdgeAction } from "./actions";
 
 export const metadata: Metadata = {
@@ -76,7 +77,11 @@ export default async function DashboardIndustryPage() {
             </CardHeader>
           </Card>
         ) : (
-          pendingEdges.map((edge) => (
+          pendingEdges.map((edge) => {
+            const policyDecision = classifyWithPolicy(edge.confidence, "linkedin_industry_codes");
+            const bandVariant =
+              policyDecision.band === "high" ? "success" : policyDecision.band === "mid" ? "warning" : "muted";
+            return (
             <Card key={edge.id} variant="elevated">
               <CardHeader>
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -85,7 +90,10 @@ export default async function DashboardIndustryPage() {
                     <span className="mx-1.5 font-normal text-muted-foreground">→</span>
                     {edge.toConceptLabel}
                   </CardTitle>
-                  <Badge variant="warning">{edge.mappingQuality}</Badge>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={bandVariant}>band {policyDecision.band}</Badge>
+                    <Badge variant="warning">{edge.mappingQuality}</Badge>
+                  </div>
                 </div>
                 <CardDescription className="space-y-1">
                   <span>
@@ -93,6 +101,14 @@ export default async function DashboardIndustryPage() {
                     {edge.source ?? "unknown"}
                     {edge.inferred ? " · inferred" : ""}
                   </span>
+                  <details className="mt-2 rounded-md border border-stroke-soft bg-surface-panel p-2 text-xs text-muted-foreground">
+                    <summary className="cursor-pointer select-none">Policy routing (industry domain)</summary>
+                    <ul className="mt-2 space-y-1 font-mono">
+                      <li>matched &gt;= {policyDecision.thresholds.matched.toFixed(2)}</li>
+                      <li>suggested &gt;= {policyDecision.thresholds.suggested.toFixed(2)}</li>
+                      <li>route: {policyDecision.status} · {policyDecision.reason}</li>
+                    </ul>
+                  </details>
                   {edge.fromCodesSummary ? (
                     <span className="block font-mono text-xs text-muted-foreground">From codes: {edge.fromCodesSummary}</span>
                   ) : null}
@@ -120,7 +136,8 @@ export default async function DashboardIndustryPage() {
                 </div>
               </CardHeader>
             </Card>
-          ))
+            );
+          })
         )}
       </div>
     </div>

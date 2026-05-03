@@ -16,6 +16,7 @@ export type ReviewRecord = {
   reviewedAt: string | null;
   notes: string | null;
   createdAt: string;
+  explainPayload: Record<string, unknown>;
 };
 
 type QueueParams = {
@@ -25,6 +26,7 @@ type QueueParams = {
   normalizedInput: string;
   confidence: number;
   suggestedValueId?: string | null;
+  explainPayload?: Record<string, unknown> | null;
 };
 
 export async function queueReviewRecord(params: QueueParams): Promise<ReviewRecord | null> {
@@ -42,8 +44,12 @@ export async function queueReviewRecord(params: QueueParams): Promise<ReviewReco
       normalized_input: params.normalizedInput,
       suggested_value_id: params.suggestedValueId ?? null,
       status: "pending",
+      confidence: params.confidence,
+      explain_payload: params.explainPayload ?? {},
     })
-    .select("id, organization_id, field_type_id, input, normalized_input, status, suggested_value_id, selected_value_id, reviewed_at, notes, created_at")
+    .select(
+      "id, organization_id, field_type_id, input, normalized_input, status, suggested_value_id, selected_value_id, reviewed_at, notes, created_at, confidence, explain_payload",
+    )
     .single();
 
   if (error || !data) {
@@ -59,13 +65,14 @@ export async function queueReviewRecord(params: QueueParams): Promise<ReviewReco
     fieldKey: (fieldType?.key as string) ?? "unknown",
     input: data.input as string,
     normalizedInput: data.normalized_input as string,
-    confidence: params.confidence,
+    confidence: Number(data.confidence ?? params.confidence ?? 0),
     status: (data.status as ReviewStatus) ?? "pending",
     suggestedValueId: (data.suggested_value_id as string | null) ?? null,
     selectedValueId: (data.selected_value_id as string | null) ?? null,
     reviewedAt: (data.reviewed_at as string | null) ?? null,
     notes: (data.notes as string | null) ?? null,
     createdAt: data.created_at as string,
+    explainPayload: (data.explain_payload as Record<string, unknown> | null) ?? {},
   };
 }
 
@@ -77,7 +84,9 @@ export async function listReviewRecords(organizationId: string, limit = 200): Pr
 
   const { data, error } = await admin
     .from("mapping_reviews")
-    .select("id, organization_id, field_type_id, input, normalized_input, status, suggested_value_id, selected_value_id, reviewed_at, notes, created_at, field_types(key)")
+    .select(
+      "id, organization_id, field_type_id, input, normalized_input, status, suggested_value_id, selected_value_id, reviewed_at, notes, created_at, confidence, explain_payload, field_types(key)",
+    )
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -94,13 +103,14 @@ export async function listReviewRecords(organizationId: string, limit = 200): Pr
       fieldKey: fieldType?.key ?? "unknown",
       input: row.input as string,
       normalizedInput: row.normalized_input as string,
-      confidence: 0,
+      confidence: Number(row.confidence ?? 0),
       status: (row.status as ReviewStatus) ?? "pending",
       suggestedValueId: (row.suggested_value_id as string | null) ?? null,
       selectedValueId: (row.selected_value_id as string | null) ?? null,
       reviewedAt: (row.reviewed_at as string | null) ?? null,
       notes: (row.notes as string | null) ?? null,
       createdAt: row.created_at as string,
+      explainPayload: (row.explain_payload as Record<string, unknown> | null) ?? {},
     };
   });
 }

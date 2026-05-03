@@ -1,0 +1,8 @@
+{
+  "domain": "industry",
+  "field_key": "company_industry",
+  "cases": [
+    { "input": "Software", "expected_key": "computer-software", "expected_band": "high" },
+    { "input": "Computer Software", "expected_key": "computer-software", "expected_band": "high" }
+  ]
+}

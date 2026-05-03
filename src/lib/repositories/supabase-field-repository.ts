@@ -8,7 +8,7 @@ import type {
   FieldValue,
   PackCategory,
 } from "@/lib/domain/types";
-import type { IFieldRepository } from "@/lib/repositories/field-repository.interface";
+import type { IFieldRepository, RecentDecision } from "@/lib/repositories/field-repository.interface";
 
 function mapPack(row: Record<string, unknown>): FieldPack {
   return {
@@ -217,5 +217,77 @@ export class SupabaseFieldRepository implements IFieldRepository {
       fieldType: mapFieldType(typeRow as Record<string, unknown>),
       value: mapFieldValue(valueRow as Record<string, unknown>),
     };
+  }
+
+  async getValueParents(valueId: string, maxDepth = 6): Promise<FieldValue[]> {
+    const chain: FieldValue[] = [];
+    let currentId: string | null = valueId;
+    const seen = new Set<string>();
+    for (let depth = 0; depth < maxDepth; depth += 1) {
+      if (!currentId || seen.has(currentId)) break;
+      seen.add(currentId);
+      const { data, error }: { data: Record<string, unknown> | null; error: unknown } = await this.client
+        .from("field_values")
+        .select("*")
+        .eq("id", currentId)
+        .maybeSingle();
+      if (error || !data) break;
+      const value = mapFieldValue(data);
+      if (depth > 0) chain.push(value);
+      currentId = value.parentId;
+    }
+    return chain;
+  }
+
+  async getRecentDecisionsFor(
+    fieldTypeId: string,
+    normalizedInput: string,
+    limit = 25,
+  ): Promise<RecentDecision[]> {
+    const decisions: RecentDecision[] = [];
+    const { data: reviews } = await this.client
+      .from("mapping_reviews")
+      .select("status, selected_value_id, suggested_value_id, created_at")
+      .eq("field_type_id", fieldTypeId)
+      .eq("normalized_input", normalizedInput)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    for (const row of reviews ?? []) {
+      const valueId = (row.selected_value_id as string | null) ?? (row.suggested_value_id as string | null);
+      if (!valueId) continue;
+      decisions.push({
+        valueId,
+        status: ((row.status as RecentDecision["status"]) ?? "pending"),
+        source: "mapping_reviews",
+        createdAt: (row.created_at as string) ?? new Date().toISOString(),
+      });
+    }
+    const { data: aliases } = await this.client
+      .from("field_aliases")
+      .select("field_value_id, source, status, created_at")
+      .eq("field_type_id", fieldTypeId)
+      .eq("normalized_alias", normalizedInput)
+      .limit(limit);
+    for (const row of aliases ?? []) {
+      const valueId = row.field_value_id as string | null;
+      if (!valueId) continue;
+      decisions.push({
+        valueId,
+        status: "alias",
+        source: (row.source as string | null) ?? "field_aliases",
+        createdAt: (row.created_at as string) ?? new Date().toISOString(),
+      });
+    }
+    return decisions;
+  }
+
+  async getCrosswalksByFromValueId(valueId: string, toFieldTypeId?: string): Promise<FieldCrosswalk[]> {
+    let query = this.client.from("field_crosswalks").select("*").eq("from_value_id", valueId);
+    if (toFieldTypeId) {
+      query = query.eq("to_field_type_id", toFieldTypeId);
+    }
+    const { data, error } = await query;
+    if (error || !data) return [];
+    return data.map((row) => mapCrosswalk(row as Record<string, unknown>));
   }
 }

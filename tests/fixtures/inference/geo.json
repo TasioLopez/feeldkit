@@ -1,0 +1,12 @@
+{
+  "domain": "geo",
+  "field_key": "countries",
+  "cases": [
+    { "input": "NL", "expected_key": "netherlands", "expected_band": "high" },
+    { "input": "Netherlands", "expected_key": "netherlands", "expected_band": "high" },
+    { "input": "Holland", "expected_key": "netherlands" },
+    { "input": "Nederland", "expected_key": "netherlands", "expected_band": "high" },
+    { "input": "CA", "expected_key": "canada", "expected_band": "high" },
+    { "input": "Canada", "expected_key": "canada", "expected_band": "high" }
+  ]
+}

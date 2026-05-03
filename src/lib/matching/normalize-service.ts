@@ -1,16 +1,9 @@
 import { z } from "zod";
 import { normalizeText } from "@/lib/matching/normalize-text";
-import { exactAliasMatch } from "@/lib/matching/exact-alias-match";
-import { exactValueMatch } from "@/lib/matching/exact-value-match";
-import { metadataCodeMatch } from "@/lib/matching/metadata-code-match";
-import { fuzzyMatch } from "@/lib/matching/fuzzy-match";
-import { validationMatch } from "@/lib/matching/validation-match";
-import { parserMatch } from "@/lib/matching/parser-match";
-import { contextBoost } from "@/lib/matching/context-boost";
-import { classifyConfidence } from "@/lib/matching/confidence";
 import { enqueueReview } from "@/lib/matching/review-queue";
 import { getFieldRepository } from "@/lib/repositories/get-field-repository";
-import { resolveEnumValuesCanonicalField } from "@/lib/matching/field-reference-resolver";
+import { runInference } from "@/lib/matching/inference/engine";
+import type { ExplainV1 } from "@/lib/matching/inference/explain";
 
 export const normalizeRequestSchema = z.object({
   field_key: z.string(),
@@ -19,30 +12,55 @@ export const normalizeRequestSchema = z.object({
   organization_id: z.string().optional(),
 });
 
-export async function normalizeOne(request: z.infer<typeof normalizeRequestSchema>) {
+type NormalizeMatch = {
+  id: string;
+  key: string;
+  label: string;
+  metadata: Record<string, unknown>;
+} | null;
+
+export type NormalizeResponse = {
+  field_key: string;
+  input: string;
+  normalized_input: string;
+  status: string;
+  confidence: number;
+  needs_review: boolean;
+  review_id?: string;
+  match: NormalizeMatch;
+  trace: {
+    resolved_via: "canonical_ref" | null;
+    consumer_field_key?: string;
+    canonical_field_key?: string;
+    prior_decision_count: number;
+  };
+  explain: ExplainV1;
+};
+
+export async function normalizeOne(request: z.infer<typeof normalizeRequestSchema>): Promise<NormalizeResponse> {
   const repo = getFieldRepository();
-  const normalizedInput = normalizeText(request.value);
-  const consumerFieldType = await repo.getFieldTypeByKey(request.field_key);
-  const resolved = resolveEnumValuesCanonicalField(consumerFieldType);
-  const matchFieldKey = resolved?.canonicalFieldKey ?? request.field_key;
-  const fieldType = consumerFieldType;
-  const fieldTypeId = fieldType?.id ?? null;
-  const candidates = (
-    await Promise.all([
-      exactAliasMatch(repo, matchFieldKey, request.value, request.context),
-      exactValueMatch(repo, matchFieldKey, request.value),
-      metadataCodeMatch(repo, matchFieldKey, request.value),
-      Promise.resolve(validationMatch(matchFieldKey, request.value, request.context)),
-      Promise.resolve(parserMatch(matchFieldKey, request.value, request.context)),
-      fuzzyMatch(repo, matchFieldKey, request.value),
-    ])
-  ).filter((candidate): candidate is NonNullable<typeof candidate> => Boolean(candidate));
+  const inference = await runInference(
+    {
+      fieldKey: request.field_key,
+      value: request.value,
+      context: request.context,
+      organizationId: request.organization_id,
+    },
+    repo,
+  );
+  const normalizedInput = inference.normalizedInput || normalizeText(request.value);
+  const resolvedViaCanonicalRef = inference.resolvedFieldKey !== request.field_key;
+  const fieldTypeId =
+    (inference.resolvedFieldType ?? inference.consumerFieldType)?.id ?? null;
 
-  const top = candidates
-    .map((candidate) => contextBoost(matchFieldKey, candidate, request.context))
-    .sort((a, b) => b.confidence - a.confidence)[0];
+  const baseTrace: NormalizeResponse["trace"] = {
+    resolved_via: resolvedViaCanonicalRef ? "canonical_ref" : null,
+    consumer_field_key: resolvedViaCanonicalRef ? request.field_key : undefined,
+    canonical_field_key: resolvedViaCanonicalRef ? inference.resolvedFieldKey : undefined,
+    prior_decision_count: inference.priorDecisionCount,
+  };
 
-  if (!top) {
+  if (!inference.winner) {
     const review = await enqueueReview({
       organizationId: request.organization_id ?? null,
       fieldTypeId,
@@ -55,6 +73,7 @@ export async function normalizeOne(request: z.infer<typeof normalizeRequestSchem
       selectedValueId: null,
       reviewedAt: null,
       notes: null,
+      explainPayload: inference.explain as unknown as Record<string, unknown>,
     });
     return {
       field_key: request.field_key,
@@ -65,28 +84,25 @@ export async function normalizeOne(request: z.infer<typeof normalizeRequestSchem
       needs_review: true,
       review_id: review.id,
       match: null,
-      trace: {
-        resolved_via: resolved ? ("canonical_ref" as const) : null,
-        consumer_field_key: resolved ? request.field_key : undefined,
-        canonical_field_key: resolved ? matchFieldKey : undefined,
-      },
+      trace: baseTrace,
+      explain: inference.explain,
     };
   }
 
-  const confidence = classifyConfidence(top.confidence);
-  if (confidence.needsReview) {
+  if (inference.decision.needsReview) {
     await enqueueReview({
       organizationId: request.organization_id ?? null,
       fieldTypeId,
       fieldKey: request.field_key,
       input: request.value,
       normalizedInput,
-      confidence: top.confidence,
+      confidence: inference.winner.finalScore,
       status: "pending",
-      suggestedValueId: top.value.id,
+      suggestedValueId: inference.winner.value.id,
       selectedValueId: null,
       reviewedAt: null,
       notes: null,
+      explainPayload: inference.explain as unknown as Record<string, unknown>,
     });
   }
 
@@ -94,20 +110,17 @@ export async function normalizeOne(request: z.infer<typeof normalizeRequestSchem
     field_key: request.field_key,
     input: request.value,
     normalized_input: normalizedInput,
-    status: confidence.status,
-    confidence: Number(top.confidence.toFixed(2)),
-    needs_review: confidence.needsReview,
+    status: inference.decision.status,
+    confidence: Number(inference.winner.finalScore.toFixed(2)),
+    needs_review: inference.decision.needsReview,
     match: {
-      id: top.value.id,
-      key: top.value.key,
-      label: top.value.label,
-      metadata: top.value.metadata,
+      id: inference.winner.value.id,
+      key: inference.winner.value.key,
+      label: inference.winner.value.label,
+      metadata: inference.winner.value.metadata,
     },
-    trace: {
-      resolved_via: resolved ? ("canonical_ref" as const) : null,
-      consumer_field_key: resolved ? request.field_key : undefined,
-      canonical_field_key: resolved ? matchFieldKey : undefined,
-    },
+    trace: baseTrace,
+    explain: inference.explain,
   };
 }
 

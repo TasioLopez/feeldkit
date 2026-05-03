@@ -12,6 +12,7 @@ interface ReviewQueueItem {
   reviewedAt: string | null;
   notes: string | null;
   createdAt: string;
+  explainPayload: Record<string, unknown>;
 }
 
 const inMemoryReviewQueue: ReviewQueueItem[] = [];
@@ -26,6 +27,7 @@ export async function enqueueReview(item: Omit<ReviewQueueItem, "id" | "createdA
       normalizedInput: item.normalizedInput,
       confidence: item.confidence,
       suggestedValueId: item.suggestedValueId,
+      explainPayload: item.explainPayload,
     });
     if (dbItem) {
       return {
@@ -35,13 +37,14 @@ export async function enqueueReview(item: Omit<ReviewQueueItem, "id" | "createdA
         fieldKey: dbItem.fieldKey,
         input: dbItem.input,
         normalizedInput: dbItem.normalizedInput,
-        confidence: item.confidence,
+        confidence: dbItem.confidence,
         status: dbItem.status,
         suggestedValueId: dbItem.suggestedValueId,
         selectedValueId: dbItem.selectedValueId,
         reviewedAt: dbItem.reviewedAt,
         notes: dbItem.notes,
         createdAt: dbItem.createdAt,
+        explainPayload: dbItem.explainPayload,
       };
     }
   }
@@ -74,6 +77,7 @@ export async function listReviewQueue(organizationId?: string | null): Promise<R
         reviewedAt: item.reviewedAt,
         notes: item.notes,
         createdAt: item.createdAt,
+        explainPayload: item.explainPayload,
       }));
     }
   }

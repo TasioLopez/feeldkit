@@ -9,9 +9,9 @@ field mapping work while preserving explainability and governance.
 - Review workflows and enrichment proposals exist.
 - Industry concept layer exists (`industry_concepts`, `industry_concept_codes`, `industry_concept_edges`).
 - Admin tools exist for enrichment and industry edge review.
-- Known gap: source reliability/coverage issues can leave critical systems underfilled.
-- Known gap: explicit cross-pack field references/reuse semantics are not fully enforced.
-- Known gap: deterministic flagship flow packs not formalized for top integration routes.
+- Phase 1 closed: consumer fields (`company_industry`, `company_country`, `company_employee_size_band`) carry `feeldkit.canonical_ref.v1`, modular standards packs replaced the legacy monolith, country bundle crosswalks deterministic, dashboard surfaces canonical refs.
+- Phase 2 in flight: Inference Engine V1 ships per-signal scoring, per-domain policy, `explain.v1` on every normalize/translate response, prior-decision and hierarchy boosts, and a general `translateOne` (see [INFERENCE_POLICY.md](INFERENCE_POLICY.md), [EXPLAIN_CONTRACT.md](EXPLAIN_CONTRACT.md)).
+- Known gap: deterministic flagship flow packs not formalized for top integration routes (Phase 3).
 
 ## Target State
 - Reliable source ingestion with strict quality gates.

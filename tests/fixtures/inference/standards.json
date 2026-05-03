@@ -1,0 +1,11 @@
+{
+  "domain": "standards",
+  "field_key": "languages",
+  "cases": [
+    { "input": "en", "expected_key": "en", "expected_band": "high" },
+    { "input": "English", "expected_key": "en", "expected_band": "high" },
+    { "input": "Eng", "expected_key": "en" },
+    { "input": "nl", "expected_key": "nl", "expected_band": "high" },
+    { "input": "Dutch", "expected_key": "nl" }
+  ]
+}

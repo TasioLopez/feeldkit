@@ -83,6 +83,17 @@ For full production V1 imports (geo, modular `standards_*` packs, industry, jobs
 - `npm run verify:pack-health` (checks minimum package coverage thresholds)
 - `npm run process:enrichment-jobs` (process pending queued enrichment jobs)
 
+### Phase 2 — Inference Engine V1
+
+- **Migration:** `supabase/migrations/20260504000000_phase2_inference.sql` adds `mapping_reviews.confidence` and `mapping_reviews.explain_payload`, plus `mapping_reviews_field_input_idx` for prior lookups. Apply with the standard Supabase migration flow before deploying the Phase 2 app code.
+- **Per-domain policy:** thresholds and signal weights documented in [`docs/INFERENCE_POLICY.md`](INFERENCE_POLICY.md). Defaults are non-breaking (legacy single-matcher behavior reproduces because base-signal weights stay 1.0).
+- **Trace contract:** every `/api/v1/normalize`, `/api/v1/normalize/batch`, `/api/v1/translate`, `/api/v1/translate/batch` response now carries `explain.v1`. Spec at [`docs/EXPLAIN_CONTRACT.md`](EXPLAIN_CONTRACT.md). Existing `trace.*` fields remain (additive); a new `trace.prior_decision_count` is included.
+- **General translate:** `POST /api/v1/translate` (body `{ from_field_key, value, to_field_key, context? }`) and `POST /api/v1/translate/batch`. Resolves the from-side via the engine, walks `field_crosswalks`, and falls back to the industry concept graph when source/target are industry-canonical.
+- **Verify gates:** `npm run verify:pack-health` now asserts policy consistency (`matched > suggested` per domain), explain-presence (`/api/v1/normalize` -> `explain.version === "1"`), and inference precision (reads `.generated/inference-precision-report.json`).
+- **Precision report:** `npm run inference:precision` runs fixtures under `tests/fixtures/inference/*.json` and writes `.generated/inference-precision-report.json`. Baselines: `geo` 0.85, `standards` 0.85, `industry` 0.60, default 0.70. Tighten as production fixture coverage grows.
+- **Dashboard surfacing:** `/dashboard/reviews` shows confidence band, domain, and an expandable Signals section sourced from `explain_payload`. Filters now include `?domain=...`.
+- **Rollback:** drop the new columns (`alter table mapping_reviews drop column explain_payload, drop column confidence;`) and ship the previous app build. The legacy classifier path is reachable by reverting `normalize-service.ts` to the pre-Phase-2 commit; engine modules can stay in place.
+
 ### Phase 1 — canonical field references, modular standards, country bundles
 
 - **Canonical refs:** consumer `field_types` (for example `company_industry`) store `feeldkit.canonical_ref.v1` on `metadata_schema`. Re-imports merge metadata unless `feeldkit.metadata_lock` is true or you pass a force-overwrite path through ingestion options.

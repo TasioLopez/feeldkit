@@ -1,7 +1,7 @@
 import { fieldAliases, fieldCrosswalks, fieldPacks, fieldTypes, fieldValues } from "@/data/v1";
 import { normalizeText } from "@/lib/matching/normalize-text";
 import type { FieldAlias, FieldCrosswalk, FieldPack, FieldType, FieldValue } from "@/lib/domain/types";
-import type { IFieldRepository } from "@/lib/repositories/field-repository.interface";
+import type { IFieldRepository, RecentDecision } from "@/lib/repositories/field-repository.interface";
 
 const typeByKey = new Map(fieldTypes.map((entry) => [entry.key, entry]));
 const valueById = new Map(fieldValues.map((entry) => [entry.id, entry]));
@@ -72,5 +72,43 @@ export class StaticFieldRepository implements IFieldRepository {
       return null;
     }
     return { fieldType, value };
+  }
+
+  async getValueParents(valueId: string, maxDepth = 6): Promise<FieldValue[]> {
+    const chain: FieldValue[] = [];
+    let current = valueById.get(valueId);
+    const seen = new Set<string>();
+    for (let depth = 0; depth < maxDepth; depth += 1) {
+      if (!current || seen.has(current.id)) break;
+      seen.add(current.id);
+      if (depth > 0) chain.push(current);
+      if (!current.parentId) break;
+      current = valueById.get(current.parentId);
+    }
+    return chain;
+  }
+
+  async getRecentDecisionsFor(fieldTypeId: string, normalizedInput: string, _limit = 25): Promise<RecentDecision[]> {
+    void _limit;
+    const decisions: RecentDecision[] = [];
+    for (const alias of fieldAliases) {
+      if (alias.fieldTypeId !== fieldTypeId) continue;
+      if (alias.normalizedAlias !== normalizedInput) continue;
+      decisions.push({
+        valueId: alias.fieldValueId,
+        status: "alias",
+        source: alias.source ?? "field_aliases",
+        createdAt: new Date().toISOString(),
+      });
+    }
+    return decisions;
+  }
+
+  async getCrosswalksByFromValueId(valueId: string, toFieldTypeId?: string): Promise<FieldCrosswalk[]> {
+    return fieldCrosswalks.filter((entry) => {
+      if (entry.fromValueId !== valueId) return false;
+      if (toFieldTypeId && entry.toFieldTypeId !== toFieldTypeId) return false;
+      return true;
+    });
   }
 }

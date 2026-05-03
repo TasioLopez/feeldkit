@@ -2,6 +2,9 @@ import { createClient } from "@supabase/supabase-js";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { FEELDKIT_CANONICAL_REF_V1 } from "../src/lib/domain/canonical-ref";
+import { assertPolicyConsistency } from "../src/lib/matching/inference/policy";
+import { runInference } from "../src/lib/matching/inference/engine";
+import { getFieldRepository } from "../src/lib/repositories/get-field-repository";
 
 const MIN_PACK_VALUE_COUNTS: Record<string, number> = {
   geo: 200,
@@ -64,6 +67,24 @@ type ImportReport = {
   }>;
   field_reference_summary?: { field_types_with_canonical_ref?: number };
 };
+
+type PrecisionReport = {
+  generated_at: string;
+  fixtures: Array<{ fixture: string; domain: string; pass_rate: number; total: number; passed: number }>;
+  baselines: Record<string, number>;
+  default_baseline: number;
+};
+
+const PRECISION_REPORT_PATH = resolve(process.cwd(), ".generated", "inference-precision-report.json");
+
+async function loadPrecisionReport(): Promise<PrecisionReport | null> {
+  try {
+    const content = await readFile(PRECISION_REPORT_PATH, "utf8");
+    return JSON.parse(content) as PrecisionReport;
+  } catch {
+    return null;
+  }
+}
 
 async function loadImportReport(): Promise<ImportReport | null> {
   try {
@@ -176,6 +197,38 @@ async function run() {
       const targetOk = Boolean(target?.id);
       console.log(`  ${targetOk ? "[OK]" : "[LOW]"} ref_target_exists ${fk}`);
       if (!targetOk) failed = true;
+    }
+  }
+
+  const policyResult = assertPolicyConsistency();
+  console.log(`${policyResult.ok ? "[OK]" : "[LOW]"} inference_policy_thresholds_consistent`);
+  for (const problem of policyResult.problems) {
+    console.log(`  [LOW] policy_problem ${problem}`);
+  }
+  if (!policyResult.ok) failed = true;
+
+  try {
+    const repo = getFieldRepository();
+    const inference = await runInference({ fieldKey: "countries", value: "NL" }, repo);
+    const explainOk = inference.explain?.version === "1";
+    console.log(`${explainOk ? "[OK]" : "[LOW]"} inference_engine_explain_present version=${inference.explain?.version ?? "missing"}`);
+    if (!explainOk) failed = true;
+  } catch (error) {
+    console.log(`[LOW] inference_engine_explain_present error=${(error as Error).message}`);
+    failed = true;
+  }
+
+  const precisionReport = await loadPrecisionReport();
+  if (!precisionReport) {
+    console.log("[WARN] inference precision report not found; run `npm run inference:precision`");
+  } else {
+    for (const fixture of precisionReport.fixtures) {
+      const baseline = precisionReport.baselines[fixture.domain] ?? precisionReport.default_baseline;
+      const ok = fixture.pass_rate >= baseline;
+      console.log(
+        `${ok ? "[OK]" : "[LOW]"} inference_precision fixture=${fixture.fixture} domain=${fixture.domain} pass_rate=${fixture.pass_rate.toFixed(2)} baseline=${baseline.toFixed(2)} (${fixture.passed}/${fixture.total})`,
+      );
+      if (!ok) failed = true;
     }
   }
 
