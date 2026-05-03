@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { listApiKeysForOrganization } from "./actions";
+import { getOrganizationContext, listApiKeysForOrganization } from "./actions";
 import { ApiKeysClient } from "./api-keys-client";
+import { OrganizationCard } from "./organization-card";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { env } from "@/lib/config/env";
 import { isSupabaseConfigured } from "@/lib/config/env";
@@ -16,13 +17,21 @@ export const metadata: Metadata = {
 const scopes = ["read:packs", "read:fields", "normalize", "validate", "parse", "admin:reviews", "admin:fields"];
 
 export default async function DashboardApiKeysPage() {
-  const keys = await listApiKeysForOrganization();
+  const [keys, orgContext] = await Promise.all([listApiKeysForOrganization(), getOrganizationContext()]);
 
   return (
     <div className="space-y-6">
       <PageHeader title="API keys" description="Issue keys with scoped access to the FeeldKit HTTP API." />
       {isSupabaseConfigured() ? (
-        <ApiKeysClient initialKeys={keys} />
+        <>
+          {orgContext ? (
+            <OrganizationCard
+              organizationId={orgContext.organizationId}
+              organizationName={orgContext.organizationName}
+            />
+          ) : null}
+          <ApiKeysClient initialKeys={keys} role={orgContext?.role ?? "viewer"} />
+        </>
       ) : (
         <Alert variant="warning">
           <AlertTitle>Supabase required</AlertTitle>
@@ -45,7 +54,7 @@ export default async function DashboardApiKeysPage() {
       <Card variant="elevated">
         <CardHeader>
           <CardTitle className="text-base">Available scopes</CardTitle>
-          <CardDescription>Assign the minimum scopes needed for each integration.</CardDescription>
+          <CardDescription>Picked at create time. Assign the minimum scopes needed for each integration.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           {scopes.map((scope) => (

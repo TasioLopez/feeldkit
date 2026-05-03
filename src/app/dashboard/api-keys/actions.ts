@@ -3,9 +3,22 @@
 import { revalidatePath } from "next/cache";
 import { generateApiKey } from "@/lib/auth/api-key-service";
 import { assertAdminRole, getAdminActorContext } from "@/lib/auth/admin-context";
+import type { ApiScope } from "@/lib/auth/api-key";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
 
-const DEFAULT_SCOPES = ["read:packs", "read:fields", "normalize", "validate", "parse"];
+export const ALL_SCOPES = [
+  "read:packs",
+  "read:fields",
+  "normalize",
+  "validate",
+  "parse",
+  "admin:reviews",
+  "admin:fields",
+] as const satisfies readonly ApiScope[];
+
+export const DEFAULT_SCOPES: ApiScope[] = ["read:packs", "read:fields", "normalize", "validate", "parse"];
+
+const ADMIN_SCOPES: ApiScope[] = ["admin:reviews", "admin:fields"];
 
 async function getActorOrgAndRole(): Promise<{ organizationId: string; role: string } | null> {
   const ctx = await getAdminActorContext();
@@ -13,6 +26,29 @@ async function getActorOrgAndRole(): Promise<{ organizationId: string; role: str
     return null;
   }
   return { organizationId: ctx.organizationId, role: ctx.role };
+}
+
+export async function getOrganizationContext(): Promise<{
+  organizationId: string;
+  organizationName: string | null;
+  role: string;
+} | null> {
+  const ctx = await getActorOrgAndRole();
+  if (!ctx) return null;
+  const admin = getSupabaseServiceClient();
+  if (!admin) {
+    return { organizationId: ctx.organizationId, organizationName: null, role: ctx.role };
+  }
+  const { data } = await admin
+    .from("organizations")
+    .select("name")
+    .eq("id", ctx.organizationId)
+    .maybeSingle();
+  return {
+    organizationId: ctx.organizationId,
+    organizationName: (data?.name as string | null) ?? null,
+    role: ctx.role,
+  };
 }
 
 export async function listApiKeysForOrganization(): Promise<
@@ -44,9 +80,12 @@ export async function listApiKeysForOrganization(): Promise<
   }>;
 }
 
-export async function createApiKeyAction(name: string): Promise<{ plaintextKey?: string; error?: string }> {
-  const trimmed = name.trim();
-  if (!trimmed || trimmed.length > 120) {
+export async function createApiKeyAction(input: {
+  name: string;
+  scopes: ApiScope[];
+}): Promise<{ plaintextKey?: string; scopes?: ApiScope[]; error?: string }> {
+  const trimmedName = input.name.trim();
+  if (!trimmedName || trimmedName.length > 120) {
     return { error: "Name must be 1–120 characters." };
   }
   const ctx = await getActorOrgAndRole();
@@ -58,6 +97,16 @@ export async function createApiKeyAction(name: string): Promise<{ plaintextKey?:
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Forbidden" };
   }
+  const requestedScopes = Array.from(new Set(input.scopes ?? [])).filter((scope): scope is ApiScope =>
+    (ALL_SCOPES as readonly string[]).includes(scope),
+  );
+  if (requestedScopes.length === 0) {
+    return { error: "Pick at least one scope." };
+  }
+  const wantsAdminScope = requestedScopes.some((scope) => ADMIN_SCOPES.includes(scope));
+  if (wantsAdminScope && ctx.role !== "owner") {
+    return { error: "Only owners can issue admin scopes." };
+  }
   const admin = getSupabaseServiceClient();
   if (!admin) {
     return { error: "Server configuration error." };
@@ -65,16 +114,16 @@ export async function createApiKeyAction(name: string): Promise<{ plaintextKey?:
   const { fullKey, prefix, hash } = generateApiKey();
   const { error } = await admin.from("api_keys").insert({
     organization_id: ctx.organizationId,
-    name: trimmed,
+    name: trimmedName,
     key_prefix: prefix,
     key_hash: hash,
-    scopes: DEFAULT_SCOPES,
+    scopes: requestedScopes,
   });
   if (error) {
     return { error: error.message };
   }
   revalidatePath("/dashboard/api-keys");
-  return { plaintextKey: fullKey };
+  return { plaintextKey: fullKey, scopes: requestedScopes };
 }
 
 export async function revokeApiKeyAction(id: string): Promise<{ error?: string }> {

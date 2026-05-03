@@ -15,7 +15,11 @@ export const Alert = forwardRef<HTMLDivElement, AlertProps>(({ className, varian
   <div
     ref={ref}
     role="alert"
-    className={cn("relative w-full rounded-lg border p-4 text-sm [&_svg]:absolute [&_svg]:left-4 [&_svg]:top-4 [&_svg~*]:pl-7", variants[variant], className)}
+    className={cn(
+      "relative w-full rounded-lg border p-4 text-sm [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg~*]:pl-7",
+      variants[variant],
+      className,
+    )}
     {...props}
   />
 ));
