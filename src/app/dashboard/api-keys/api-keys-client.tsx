@@ -2,13 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { Check, Copy, ShieldAlert } from "lucide-react";
-import {
-  ALL_SCOPES,
-  DEFAULT_SCOPES,
-  createApiKeyAction,
-  revokeApiKeyAction,
-} from "./actions";
-import type { ApiScope } from "@/lib/auth/api-key";
+import { createApiKeyAction, revokeApiKeyAction } from "./actions";
+import { ALL_API_KEY_SCOPES, DEFAULT_API_KEY_SCOPES, type ApiScope } from "@/lib/auth/api-key";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,12 +38,12 @@ export function ApiKeysClient({
   role: string;
 }) {
   const isOwner = role === "owner";
-  const visibleScopes = ALL_SCOPES.filter((scope) => isOwner || !isAdminScope(scope));
+  const visibleScopes = ALL_API_KEY_SCOPES.filter((scope) => isOwner || !isAdminScope(scope));
 
   const [keys, setKeys] = useState(initialKeys);
   const [name, setName] = useState("");
   const [selectedScopes, setSelectedScopes] = useState<ApiScope[]>(() =>
-    DEFAULT_SCOPES.filter((scope) => visibleScopes.includes(scope)),
+    DEFAULT_API_KEY_SCOPES.filter((scope) => visibleScopes.includes(scope)),
   );
   const [plaintext, setPlaintext] = useState<string | null>(null);
   const [issuedScopes, setIssuedScopes] = useState<ApiScope[]>([]);

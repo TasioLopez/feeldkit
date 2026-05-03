@@ -3,20 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { generateApiKey } from "@/lib/auth/api-key-service";
 import { assertAdminRole, getAdminActorContext } from "@/lib/auth/admin-context";
-import type { ApiScope } from "@/lib/auth/api-key";
+import { ALL_API_KEY_SCOPES, type ApiScope } from "@/lib/auth/api-key";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
-
-export const ALL_SCOPES = [
-  "read:packs",
-  "read:fields",
-  "normalize",
-  "validate",
-  "parse",
-  "admin:reviews",
-  "admin:fields",
-] as const satisfies readonly ApiScope[];
-
-export const DEFAULT_SCOPES: ApiScope[] = ["read:packs", "read:fields", "normalize", "validate", "parse"];
 
 const ADMIN_SCOPES: ApiScope[] = ["admin:reviews", "admin:fields"];
 
@@ -97,8 +85,9 @@ export async function createApiKeyAction(input: {
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Forbidden" };
   }
+  const allowed = new Set<string>(ALL_API_KEY_SCOPES);
   const requestedScopes = Array.from(new Set(input.scopes ?? [])).filter((scope): scope is ApiScope =>
-    (ALL_SCOPES as readonly string[]).includes(scope),
+    allowed.has(scope),
   );
   if (requestedScopes.length === 0) {
     return { error: "Pick at least one scope." };

@@ -9,6 +9,26 @@ export type ApiScope =
   | "admin:reviews"
   | "admin:fields";
 
+/** Every scope that may be granted to an API key (server validation + dashboard UI). */
+export const ALL_API_KEY_SCOPES: readonly ApiScope[] = [
+  "read:packs",
+  "read:fields",
+  "normalize",
+  "validate",
+  "parse",
+  "admin:reviews",
+  "admin:fields",
+];
+
+/** Default scopes pre-selected in the dashboard when creating a key. */
+export const DEFAULT_API_KEY_SCOPES: ApiScope[] = [
+  "read:packs",
+  "read:fields",
+  "normalize",
+  "validate",
+  "parse",
+];
+
 export interface StoredKey {
   id: string;
   organizationId: string | null;
