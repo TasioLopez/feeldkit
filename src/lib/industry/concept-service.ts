@@ -1,7 +1,13 @@
 import { normalizeText } from "@/lib/matching/normalize-text";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { IndustryConcept, IndustryConceptCode, IndustryConceptEdge, IndustryCodeSystem } from "@/lib/industry/types";
+import type {
+  IndustryConcept,
+  IndustryConceptCode,
+  IndustryConceptEdge,
+  IndustryConceptEdgeListItem,
+  IndustryCodeSystem,
+} from "@/lib/industry/types";
 import type { IndustryConceptGraph } from "@/lib/industry/graph-types";
 
 function conceptKeyFromLabel(label: string): string {
@@ -369,6 +375,78 @@ export async function listIndustryEdges(status?: "pending" | "approved" | "rejec
     inferred: Boolean(row.inferred),
     metadata: (row.metadata as Record<string, unknown>) ?? {},
   }));
+}
+
+const CODE_SUMMARY_MAX = 4;
+
+function summarizeCodesForConcept(
+  rows: Array<{ code_system: string; code: string }>,
+  maxCodes = CODE_SUMMARY_MAX,
+): string | null {
+  if (!rows.length) return null;
+  const parts = rows.slice(0, maxCodes).map((r) => `${r.code_system}:${r.code}`);
+  if (rows.length > maxCodes) parts.push(`+${rows.length - maxCodes}`);
+  return parts.join(" · ");
+}
+
+function chunkIds(ids: string[], size: number): string[][] {
+  const out: string[][] = [];
+  for (let i = 0; i < ids.length; i += size) out.push(ids.slice(i, i + size));
+  return out;
+}
+
+/** Same rows as `listIndustryEdges` plus human labels and per-concept code summaries for the dashboard. */
+export async function listIndustryEdgesWithContext(
+  status?: "pending" | "approved" | "rejected",
+): Promise<IndustryConceptEdgeListItem[]> {
+  const edges = await listIndustryEdges(status);
+  if (edges.length === 0) return [];
+
+  const admin = getSupabaseServiceClient();
+  if (!admin) {
+    return edges.map((e) => ({
+      ...e,
+      fromConceptLabel: e.fromConceptId.slice(0, 8) + "…",
+      toConceptLabel: e.toConceptId.slice(0, 8) + "…",
+      fromCodesSummary: null,
+      toCodesSummary: null,
+    }));
+  }
+
+  const conceptIds = [...new Set(edges.flatMap((e) => [e.fromConceptId, e.toConceptId]))];
+  const labelById = new Map<string, string>();
+  const codesByConceptId = new Map<string, Array<{ code_system: string; code: string }>>();
+
+  for (const batch of chunkIds(conceptIds, 100)) {
+    const { data: conceptRows } = await admin.from("industry_concepts").select("id, label").in("id", batch);
+    for (const row of conceptRows ?? []) {
+      labelById.set(String(row.id), String(row.label ?? ""));
+    }
+    const { data: codeRows } = await admin
+      .from("industry_concept_codes")
+      .select("concept_id, code_system, code")
+      .in("concept_id", batch);
+    for (const row of codeRows ?? []) {
+      const cid = String(row.concept_id);
+      const list = codesByConceptId.get(cid) ?? [];
+      list.push({ code_system: String(row.code_system), code: String(row.code) });
+      codesByConceptId.set(cid, list);
+    }
+  }
+
+  const fallbackLabel = (id: string) => labelById.get(id) || `Concept ${id.slice(0, 8)}…`;
+
+  return edges.map((e) => {
+    const fromCodes = codesByConceptId.get(e.fromConceptId) ?? [];
+    const toCodes = codesByConceptId.get(e.toConceptId) ?? [];
+    return {
+      ...e,
+      fromConceptLabel: fallbackLabel(e.fromConceptId),
+      toConceptLabel: fallbackLabel(e.toConceptId),
+      fromCodesSummary: summarizeCodesForConcept(fromCodes),
+      toCodesSummary: summarizeCodesForConcept(toCodes),
+    };
+  });
 }
 
 export async function decideIndustryEdge(args: {

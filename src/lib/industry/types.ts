@@ -36,3 +36,12 @@ export type IndustryConceptEdge = {
   inferred: boolean;
   metadata: Record<string, unknown>;
 };
+
+/** Edge row enriched for admin UI (concept labels + optional code summaries). */
+export type IndustryConceptEdgeListItem = IndustryConceptEdge & {
+  fromConceptLabel: string;
+  toConceptLabel: string;
+  /** Short display, e.g. "linkedin:123 · naics:456" */
+  fromCodesSummary: string | null;
+  toCodesSummary: string | null;
+};

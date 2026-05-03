@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
-import { listIndustryEdges } from "@/lib/industry/concept-service";
+import { listIndustryEdges, listIndustryEdgesWithContext } from "@/lib/industry/concept-service";
 import { decideIndustryEdgeAction } from "./actions";
 
 export const metadata: Metadata = {
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default async function DashboardIndustryPage() {
   const admin = getSupabaseServiceClient();
-  const pendingEdges = await listIndustryEdges("pending");
+  const pendingEdges = await listIndustryEdgesWithContext("pending");
   const approvedEdges = await listIndustryEdges("approved");
   const { data: codeRows } = admin
     ? await admin
@@ -80,13 +80,31 @@ export default async function DashboardIndustryPage() {
             <Card key={edge.id} variant="elevated">
               <CardHeader>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <CardTitle className="text-base">
-                    {edge.relationType} ({Math.round(edge.confidence * 100)}%)
+                  <CardTitle className="text-base leading-snug">
+                    {edge.fromConceptLabel}
+                    <span className="mx-1.5 font-normal text-muted-foreground">→</span>
+                    {edge.toConceptLabel}
                   </CardTitle>
                   <Badge variant="warning">{edge.mappingQuality}</Badge>
                 </div>
-                <CardDescription>
-                  source: {edge.source ?? "unknown"} · inferred: {edge.inferred ? "yes" : "no"}
+                <CardDescription className="space-y-1">
+                  <span>
+                    Relation: {edge.relationType} · {Math.round(edge.confidence * 100)}% confidence · source:{" "}
+                    {edge.source ?? "unknown"}
+                    {edge.inferred ? " · inferred" : ""}
+                  </span>
+                  {edge.fromCodesSummary ? (
+                    <span className="block font-mono text-xs text-muted-foreground">From codes: {edge.fromCodesSummary}</span>
+                  ) : null}
+                  {edge.toCodesSummary ? (
+                    <span className="block font-mono text-xs text-muted-foreground">To codes: {edge.toCodesSummary}</span>
+                  ) : null}
+                  {edge.sourceEvidence ? (
+                    <pre className="mt-2 max-h-32 overflow-auto rounded-md border border-border/60 bg-muted/30 p-2 text-xs text-muted-foreground">
+                      {edge.sourceEvidence}
+                    </pre>
+                  ) : null}
+                  <span className="block font-mono text-[10px] text-muted-foreground/80">Edge id: {edge.id}</span>
                 </CardDescription>
                 <div className="mt-3 flex gap-2">
                   <form action={decideIndustryEdgeAction.bind(null, edge.id, "approved")}>
