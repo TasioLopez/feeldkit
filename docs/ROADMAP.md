@@ -10,10 +10,10 @@
 - Reuse canonical industry/jobs/geo field spaces from company/person contexts.
 - Exit criteria: major shared fields reference canonical sources, not duplicates.
 
-## Phase 2: Inference Engine V1
+## Phase 2: Inference Engine V1 *(shipped on main; tune metrics in prod)*
 - Improve scoring using aliases, metadata, hierarchy, and prior review signals.
-- Add richer trace outputs for explainability.
-- Exit criteria: high-confidence auto-apply rate improves with stable precision.
+- Add richer trace outputs for explainability (`explain.v1`, policy docs).
+- Exit criteria: high-confidence auto-apply rate improves with stable precision (measure post-deploy).
 
 ## Phase 3: Deterministic Flow Packs
 - Ship first flagship flow pack (`linkedin_salesnav -> hubspot`).

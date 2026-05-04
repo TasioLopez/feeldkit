@@ -85,7 +85,8 @@ For full production V1 imports (geo, modular `standards_*` packs, industry, jobs
 
 ### Phase 2 — Inference Engine V1
 
-- **Migration:** `supabase/migrations/20260504000000_phase2_inference.sql` adds `mapping_reviews.confidence` and `mapping_reviews.explain_payload`, plus `mapping_reviews_field_input_idx` for prior lookups. Apply with the standard Supabase migration flow before deploying the Phase 2 app code.
+- **Status:** Phase 2 application code is on `main`; production still requires the migration below before reviews/priors persistence matches the running app.
+- **Migration:** `supabase/migrations/20260504000000_phase2_inference.sql` adds `mapping_reviews.confidence` and `mapping_reviews.explain_payload`, plus `mapping_reviews_field_input_idx` for prior lookups. Apply with the standard Supabase migration flow before or with deploying Phase 2 app revisions.
 - **Per-domain policy:** thresholds and signal weights documented in [`docs/INFERENCE_POLICY.md`](INFERENCE_POLICY.md). Defaults are non-breaking (legacy single-matcher behavior reproduces because base-signal weights stay 1.0).
 - **Trace contract:** every `/api/v1/normalize`, `/api/v1/normalize/batch`, `/api/v1/translate`, `/api/v1/translate/batch` response now carries `explain.v1`. Spec at [`docs/EXPLAIN_CONTRACT.md`](EXPLAIN_CONTRACT.md). Existing `trace.*` fields remain (additive); a new `trace.prior_decision_count` is included.
 - **General translate:** `POST /api/v1/translate` (body `{ from_field_key, value, to_field_key, context? }`) and `POST /api/v1/translate/batch`. Resolves the from-side via the engine, walks `field_crosswalks`, and falls back to the industry concept graph when source/target are industry-canonical.
