@@ -38,13 +38,20 @@ export function createScopedHandler(
       });
       return res;
     }
-    const requestWithContext = new Request(request, {
-      headers: new Headers(request.headers),
-    });
-    requestWithContext.headers.set("x-feeldkit-api-key-id", auth.apiKey.id);
+    // Do not use `new Request(request, …)` — Next.js/undici `Request` uses private fields (#state)
+    // and re-wrapping that instance throws on Vercel: "Cannot read private member #state…".
+    const headers = new Headers(request.headers);
+    headers.set("x-feeldkit-api-key-id", auth.apiKey.id);
     if (auth.apiKey.organizationId) {
-      requestWithContext.headers.set("x-feeldkit-organization-id", auth.apiKey.organizationId);
+      headers.set("x-feeldkit-organization-id", auth.apiKey.organizationId);
     }
+    const hasStreamBody =
+      request.body != null && request.method !== "GET" && request.method !== "HEAD";
+    type NodeRequestInit = RequestInit & { duplex?: "half" };
+    const forwardInit: NodeRequestInit = hasStreamBody
+      ? { method: request.method, headers, body: request.body, duplex: "half" }
+      : { method: request.method, headers };
+    const requestWithContext = new Request(request.url, forwardInit);
     const response = await handler(requestWithContext);
     const fieldKey = url.searchParams.get("fieldKey") ?? null;
     touchApiKeyLastUsedThrottled(auth.apiKey.id);
