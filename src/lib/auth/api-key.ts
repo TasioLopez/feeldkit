@@ -3,6 +3,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 export type ApiScope =
   | "read:packs"
   | "read:fields"
+  | "read:flows"
   | "normalize"
   | "validate"
   | "parse"
@@ -13,6 +14,7 @@ export type ApiScope =
 export const ALL_API_KEY_SCOPES: readonly ApiScope[] = [
   "read:packs",
   "read:fields",
+  "read:flows",
   "normalize",
   "validate",
   "parse",
@@ -24,6 +26,7 @@ export const ALL_API_KEY_SCOPES: readonly ApiScope[] = [
 export const DEFAULT_API_KEY_SCOPES: ApiScope[] = [
   "read:packs",
   "read:fields",
+  "read:flows",
   "normalize",
   "validate",
   "parse",

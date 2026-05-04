@@ -75,12 +75,29 @@ type PrecisionReport = {
   default_baseline: number;
 };
 
+type FlowsPrecisionReport = {
+  generated_at: string;
+  fixtures: Array<{ fixture: string; flow_key: string; pass_rate: number; total: number; passed: number }>;
+  baselines: Record<string, number>;
+  default_baseline: number;
+};
+
 const PRECISION_REPORT_PATH = resolve(process.cwd(), ".generated", "inference-precision-report.json");
+const FLOWS_PRECISION_REPORT_PATH = resolve(process.cwd(), ".generated", "flows-precision-report.json");
 
 async function loadPrecisionReport(): Promise<PrecisionReport | null> {
   try {
     const content = await readFile(PRECISION_REPORT_PATH, "utf8");
     return JSON.parse(content) as PrecisionReport;
+  } catch {
+    return null;
+  }
+}
+
+async function loadFlowsPrecisionReport(): Promise<FlowsPrecisionReport | null> {
+  try {
+    const content = await readFile(FLOWS_PRECISION_REPORT_PATH, "utf8");
+    return JSON.parse(content) as FlowsPrecisionReport;
   } catch {
     return null;
   }
@@ -227,6 +244,74 @@ async function run() {
       const ok = fixture.pass_rate >= baseline;
       console.log(
         `${ok ? "[OK]" : "[LOW]"} inference_precision fixture=${fixture.fixture} domain=${fixture.domain} pass_rate=${fixture.pass_rate.toFixed(2)} baseline=${baseline.toFixed(2)} (${fixture.passed}/${fixture.total})`,
+      );
+      if (!ok) failed = true;
+    }
+  }
+
+  // Phase 3 — flow packs gates
+  const { data: flowPackRows } = await admin.from("flow_packs").select("id,key,name,status");
+  const flagshipKey = "linkedin_salesnav__hubspot";
+  const flagship = (flowPackRows ?? []).find((row) => row.key === flagshipKey && row.status === "active");
+  const flowPacksOk = Boolean(flagship);
+  console.log(`${flowPacksOk ? "[OK]" : "[LOW]"} flow_packs_present flagship=${flagshipKey} (${flowPackRows?.length ?? 0} active flows)`);
+  if (!flowPacksOk) failed = true;
+
+  if (flagship?.id) {
+    const { data: activeVersion } = await admin
+      .from("flow_pack_versions")
+      .select("id,version,is_active")
+      .eq("flow_pack_id", flagship.id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!activeVersion?.id) {
+      console.log(`[LOW] flow_packs_active_version flow=${flagshipKey} (no active version)`);
+      failed = true;
+    } else {
+      const { data: mappings } = await admin
+        .from("flow_pack_field_mappings")
+        .select("kind,source_field_key,target_field_key,is_required")
+        .eq("flow_pack_version_id", activeVersion.id);
+      const allKeys = new Set<string>();
+      for (const mapping of mappings ?? []) {
+        allKeys.add(String(mapping.source_field_key));
+        allKeys.add(String(mapping.target_field_key));
+      }
+      let resolvableMisses = 0;
+      for (const fieldKey of allKeys) {
+        // direct mappings can use HubSpot-side keys that have no field_types row yet (e.g. firstname),
+        // so a miss is only a hard failure when the mapping kind is `translate` for either side.
+        const { data: type } = await admin.from("field_types").select("id").eq("key", fieldKey).maybeSingle();
+        if (type?.id) continue;
+        const usedAsTranslate = (mappings ?? []).some(
+          (mapping) =>
+            mapping.kind === "translate" &&
+            (mapping.source_field_key === fieldKey || mapping.target_field_key === fieldKey),
+        );
+        if (usedAsTranslate) {
+          resolvableMisses += 1;
+          console.log(`  [LOW] flow_field_mapping_unresolvable field_key=${fieldKey} (translate kind)`);
+        }
+      }
+      const resolvableOk = resolvableMisses === 0;
+      console.log(
+        `${resolvableOk ? "[OK]" : "[LOW]"} flow_field_mappings_resolvable flow=${flagshipKey} version=${activeVersion.version}`,
+      );
+      if (!resolvableOk) failed = true;
+    }
+  }
+
+  const flowsPrecisionReport = await loadFlowsPrecisionReport();
+  if (!flowsPrecisionReport) {
+    console.log("[WARN] flow precision report not found; run `npm run flows:precision`");
+  } else {
+    for (const fixture of flowsPrecisionReport.fixtures) {
+      const baseline = flowsPrecisionReport.baselines[fixture.flow_key] ?? flowsPrecisionReport.default_baseline;
+      const ok = fixture.pass_rate >= baseline;
+      console.log(
+        `${ok ? "[OK]" : "[LOW]"} flow_translate_deterministic_baseline fixture=${fixture.fixture} flow=${fixture.flow_key} pass_rate=${fixture.pass_rate.toFixed(2)} baseline=${baseline.toFixed(2)} (${fixture.passed}/${fixture.total})`,
       );
       if (!ok) failed = true;
     }

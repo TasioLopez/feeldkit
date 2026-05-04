@@ -43,7 +43,10 @@ const FALLBACK_LANGUAGE_CODES = [
   "vi",
 ] as const;
 
-const defaults = countryIso2Defaults as Record<string, { language_iso639_3: string | null }>;
+const defaults = countryIso2Defaults as Record<
+  string,
+  { currency: string | null; language_iso639_3: string | null; timezone: string | null }
+>;
 
 function getSupportedValues(kind: "timeZone" | "currency"): string[] {
   try {
@@ -130,23 +133,29 @@ export const standardsSourceAdapter: SourceAdapter = {
   name: "standards-source-adapter",
   async run(): Promise<SeedPack[]> {
     const currencyCodes = getSupportedValues("currency");
-    const currencyValues =
-      (currencyCodes.length > 0 ? currencyCodes : FALLBACK_CURRENCIES).map((code) => ({
-        key: code.toLowerCase(),
-        label: code,
-        aliases: [code],
-        metadata: { source_standard: "iso4217_like" },
-      }));
+    const baseCurrencyCodes = currencyCodes.length > 0 ? currencyCodes : [...FALLBACK_CURRENCIES];
+    const currencyKeys = new Set(baseCurrencyCodes.map((c) => c.toLowerCase()));
+    for (const row of Object.values(defaults)) {
+      if (row.currency) currencyKeys.add(row.currency.toLowerCase());
+    }
+    const currencyValues = [...currencyKeys].sort().map((code) => ({
+      key: code.toLowerCase(),
+      label: code.toUpperCase(),
+      aliases: [code.toUpperCase(), code],
+      metadata: { source_standard: "iso4217_like" },
+    }));
 
     const timezoneCodes = getSupportedValues("timeZone");
-    const timezoneValues = (timezoneCodes.length > 0 ? timezoneCodes : ["UTC", "Europe/Amsterdam", "America/Toronto"]).map(
-      (tz) => ({
-        key: ianaTimezoneValueKey(tz),
-        label: tz,
-        aliases: [tz],
-        metadata: { source_standard: "iana", iana: tz },
-      }),
-    );
+    const baseZones =
+      timezoneCodes.length > 0 ? [...timezoneCodes] : ["UTC", "Europe/Amsterdam", "America/Toronto"];
+    // Intl often omits a literal "UTC" zone; country defaults use "UTC" for many territories.
+    const timezoneList = Array.from(new Set(["UTC", ...baseZones]));
+    const timezoneValues = timezoneList.map((tz) => ({
+      key: ianaTimezoneValueKey(tz),
+      label: tz,
+      aliases: [tz],
+      metadata: { source_standard: "iana", iana: tz },
+    }));
 
     const languageValues = buildLanguageValues();
 

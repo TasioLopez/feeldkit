@@ -83,6 +83,22 @@ For full production V1 imports (geo, modular `standards_*` packs, industry, jobs
 - `npm run verify:pack-health` (checks minimum package coverage thresholds)
 - `npm run process:enrichment-jobs` (process pending queued enrichment jobs)
 
+### Phase 3 — Flow Packs V1 (Deterministic Baseline)
+
+- **Status:** Phase 3 application code is on `main`; production needs the migration below and a flow ingest before the new endpoints have data.
+- **Migration:** `supabase/migrations/20260505000000_phase3_flow_packs.sql` adds `flow_packs`, `flow_pack_versions`, `flow_pack_field_mappings`, indexes, and read-public RLS. Apply with the standard Supabase migration flow before deploying Phase 3 app revisions.
+- **JSON contract:** authored flow packs live under `src/data/flows/*.flow.json` and validate against `feeldkit.flow_pack.v1` ([`src/lib/flows/schema.ts`](../src/lib/flows/schema.ts)). Each `version` is immutable; bump the semver to publish a new active version.
+- **Ingest:** `npm run flows:ingest` upserts `flow_packs`, inserts/updates the targeted `flow_pack_versions`, demotes prior versions of the same flow, and replaces denormalized mapping rows. Report at `.generated/flows-ingest-report.json`.
+- **API routes:**
+  - `POST /api/v1/flow/translate` and `/api/v1/flow/translate/batch` (scope `normalize`) — runs the flow against a `source_record`, returning per-field outputs with `explain.v1` on translate-kind hits.
+  - `GET /api/v1/flows`, `/api/v1/flows/{flowKey}`, `/api/v1/flows/{flowKey}/versions/{version}` (scope `read:flows`) — flow listing/inspection.
+- **Scopes:** `read:flows` is added to `ApiScope`/`ALL_API_KEY_SCOPES`/`DEFAULT_API_KEY_SCOPES`. New keys default to including it; existing keys keep their explicit scope set.
+- **Deterministic-only mode:** `translate` mappings only auto-apply when `translateOne` produces a `crosswalk`/`exact_value`/`concept_graph` candidate at or above `min_confidence` (default 0.95). Anything else surfaces as `unmapped` and routes to the standard review queue.
+- **Verify gates:** `npm run verify:pack-health` now asserts `flow_packs_present` (flagship `linkedin_salesnav__hubspot` exists), `flow_field_mappings_resolvable` (translate-side keys map to known `field_types`), and `flow_translate_deterministic_baseline` (reads `.generated/flows-precision-report.json`).
+- **Precision report:** `npm run flows:precision` runs fixtures under `tests/fixtures/flows/*.json` and writes `.generated/flows-precision-report.json`. Default baseline 0.70; flagship `linkedin_salesnav__hubspot` is set to 0.60 until HubSpot value-list crosswalks are populated.
+- **Dashboard:** `/dashboard/flows` lists active flows with direct/translate counts; `/dashboard/flows/{flowKey}` shows version history, per-mapping table, and an inline test form that calls the public endpoint.
+- **Rollback:** revert routes/dashboard commit; the `flow_pack_*` tables are read-only and harmless. Hard rollback: `drop table flow_pack_field_mappings, flow_pack_versions, flow_packs cascade;` then re-run prior verify.
+
 ### Phase 2 — Inference Engine V1
 
 - **Status:** Phase 2 application code is on `main`; production still requires the migration below before reviews/priors persistence matches the running app.

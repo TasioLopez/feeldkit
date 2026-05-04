@@ -15,10 +15,13 @@
 - Add richer trace outputs for explainability (`explain.v1`, policy docs).
 - Exit criteria: high-confidence auto-apply rate improves with stable precision (measure post-deploy).
 
-## Phase 3: Deterministic Flow Packs
+## Phase 3: Deterministic Flow Packs *(shipped on main; awaiting prod migration + ingest)*
 - Ship first flagship flow pack (`linkedin_salesnav -> hubspot`).
-- Include mapping fixtures and deterministic regression tests.
-- Exit criteria: flow pack produces predictable translation outputs.
+- DB schema (`flow_packs`, `flow_pack_versions`, `flow_pack_field_mappings`) governs versioned mapping rules.
+- API surface: `POST /api/v1/flow/translate` (+ batch), `GET /api/v1/flows`, `GET /api/v1/flows/{flowKey}/versions/{version}`.
+- Deterministic-first: `translate` rules require crosswalk hits in V1; ambiguous values surface as `unmapped` and route through review.
+- Verify gates: `flow_packs_present`, `flow_field_mappings_resolvable`, `flow_translate_deterministic_baseline`.
+- Exit criteria: flagship flow pack ingested and verified per environment, deterministic precision report on baseline.
 
 ## Phase 4: Confidence Policy and Governance
 - Domain thresholds and policy gating (auto-apply vs review).

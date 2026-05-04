@@ -1,6 +1,6 @@
 # `explain.v1` contract
 
-Every `/api/v1/normalize`, `/api/v1/normalize/batch`, `/api/v1/translate`, and `/api/v1/translate/batch` response carries a structured `explain` object. The shape is versioned (`version: "1"`) so future changes can ship under `explain.v2` without breaking existing consumers.
+Every `/api/v1/normalize`, `/api/v1/normalize/batch`, `/api/v1/translate`, `/api/v1/translate/batch` response — and every translate-kind field in the Phase 3 `/api/v1/flow/translate` (and batch) responses (see [`docs/FLOW_PACK_SPEC.md`](FLOW_PACK_SPEC.md)) — carries a structured `explain` object. The shape is versioned (`version: "1"`) so future changes can ship under `explain.v2` without breaking existing consumers.
 
 ## Top-level
 
@@ -58,6 +58,7 @@ Every `/api/v1/normalize`, `/api/v1/normalize/batch`, `/api/v1/translate`, and `
 - **Additive only within `v1`**: new optional fields may be added; existing fields keep their type and meaning.
 - **Snapshotted on review enqueue**: when `decision.needs_review` is `true`, the `explain` payload is persisted on `mapping_reviews.explain_payload` so the dashboard can render the same structured view later.
 - **Translate uses the same shape**: `/api/v1/translate` emits an `explain` object describing how the **target** candidate was reached, not the from-side resolution. The from-side trace is exposed under `trace.from_*` fields.
+- **Flow translate fields embed `explain`**: each `field` returned by `/api/v1/flow/translate` (translate-kind only) carries the same `explain.v1` payload, so reviewers can see exactly why a value was auto-applied, suggested, or kicked back as `unmapped`.
 
 ## Consuming `explain` in clients
 

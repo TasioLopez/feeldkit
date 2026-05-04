@@ -11,25 +11,27 @@ field mapping work while preserving explainability and governance.
 - Admin tools exist for enrichment and industry edge review.
 - **Phase 1 closed:** consumer fields (`company_industry`, `company_country`, `company_employee_size_band`) carry `feeldkit.canonical_ref.v1`, modular standards packs replaced the legacy monolith, country bundle crosswalks deterministic, dashboard surfaces canonical refs.
 - **Phase 2 closed (engineering):** Inference Engine V1 is implemented on `main` — per-signal scoring, per-domain policy ([INFERENCE_POLICY.md](INFERENCE_POLICY.md)), `explain.v1` on normalize and translate ([EXPLAIN_CONTRACT.md](EXPLAIN_CONTRACT.md)), prior-decision and hierarchy signals, `translateOne` plus batch routes, `mapping_reviews` columns for `confidence` / `explain_payload`, reviews dashboard surfacing, verify gates (`verify:pack-health`, optional `inference:precision`). Public API handlers rebuild `Request` from URL/init (not `new Request(incoming)`) for Vercel/undici compatibility.
-- **Product tuning (ongoing, not blocking Phase 3 planning):** raise precision baselines as fixture coverage grows; measure high-confidence hit rate and review load in production.
-- **Known gap (Phase 3):** deterministic flagship **flow packs** are not formalized yet for top integration routes (`linkedin_salesnav -> hubspot` baseline).
+- **Phase 3 closed (engineering):** Flow Packs V1 (Deterministic Baseline) is implemented on `main` — `flow_packs` / `flow_pack_versions` / `flow_pack_field_mappings` schema, `feeldkit.flow_pack.v1` JSON contract, flagship `linkedin_salesnav -> hubspot` definition under `src/data/flows/`, `runFlow` deterministic engine, `npm run flows:ingest` ingest, `read:flows` API scope, public `/api/v1/flow/*` and `/api/v1/flows*` routes, dashboard at `/dashboard/flows`, fixtures + `flows:precision` report, and `verify:pack-health` flow gates. See [FLOW_PACK_SPEC.md](FLOW_PACK_SPEC.md).
+- **Product tuning (ongoing, not blocking Phase 4 planning):** raise inference precision baselines, raise the flagship flow's deterministic baseline as HubSpot value-list crosswalks land, and grow the flow-pack catalog (HubSpot -> SalesNav inverse, Apollo, Clearbit, etc.).
+- **Known gap (Phase 4):** confidence/governance policy hardening for promoted decisions and per-org overrides on flow packs.
 
-## Pre–Phase 3 checklist (short)
+## Pre–Phase 4 checklist (short)
 
-**Repository / engineering:** Phases 0–2 scope described above is implemented in code and docs; Phase 3 work is the next major deliverable (flow-pack schema + flagship pack + deterministic tests).
+**Repository / engineering:** Phases 0–3 scope described above is implemented in code and docs; Phase 4 work is governance / per-org overrides on top of the existing flow + inference layers.
 
-**Per environment (staging, then production) — confirm before treating Phase 2 as “live” and locking Phase 3 execution:**
+**Per environment (staging, then production) — confirm before treating Phase 3 as “live” and locking Phase 4 execution:**
 
 | Gate | Action |
 | --- | --- |
-| DB migration | Apply `supabase/migrations/20260504000000_phase2_inference.sql` (`confidence`, `explain_payload`, `mapping_reviews_field_input_idx`). |
-| Deploy | Ship app revision that includes Phase 2 inference + API `Request` forward fix; smoke `POST /api/v1/normalize` with a real org key. |
-| Data | Run or refresh `npm run import:full-v1` (and/or `npm run seed`) so packs, refs, and crosswalks match what the engine expects. |
-| Verify | `npm run verify:pack-health` passes; for CI/release gates that assert inference precision, run `npm run inference:precision` first so `.generated/inference-precision-report.json` exists. |
-| Governance (recommended) | Decide policy for `organization_id` in API body vs org inferred from API key only; document for Phase 3 clients. |
-| Observability (recommended) | Enable `SENTRY_DSN` or equivalent so API 5xx are diagnosable without empty client bodies. |
+| DB migration (Phase 2) | Apply `supabase/migrations/20260504000000_phase2_inference.sql` (`confidence`, `explain_payload`, `mapping_reviews_field_input_idx`). |
+| DB migration (Phase 3) | Apply `supabase/migrations/20260505000000_phase3_flow_packs.sql` (`flow_packs`, `flow_pack_versions`, `flow_pack_field_mappings`, indexes, RLS). |
+| Deploy | Ship app revision that includes Phase 2 inference + Phase 3 flow routes/dashboard; smoke `POST /api/v1/normalize` and `POST /api/v1/flow/translate` with a real org key. |
+| Data | Run or refresh `npm run import:full-v1`, then `npm run flows:ingest` so flow_packs match the JSON in `src/data/flows/`. |
+| Verify | `npm run verify:pack-health` passes (it checks Phase 0/1/2/3 gates). For full inference + flow precision gates, run `npm run inference:precision` and `npm run flows:precision` first so the generated reports exist. |
+| Governance (recommended) | Decide rollout policy for new flow versions (manual ingest vs auto on deploy) and how to bump deterministic baselines as crosswalk coverage grows. |
+| Observability (recommended) | Enable `SENTRY_DSN` or equivalent so 5xx on `/api/v1/flow/*` are diagnosable without empty client bodies. |
 
-**Next step:** produce the full **Phase 3 — Flow Packs V1** implementation plan (schema, flagship pack, fixtures, tests, rollout).
+**Next step:** produce the **Phase 4 — Confidence Policy and Governance** plan (per-org overrides on flow mappings, promoted-decision feedback, hardened rollback for flow versions).
 
 ## Target State
 - Reliable source ingestion with strict quality gates.
@@ -67,13 +69,15 @@ Exit criteria (product — measure after Phase 2 migration + data are live):
 - Better high-confidence hit rate with stable precision.
 - Lower manual review load for known common inputs.
 
-### Phase 3 - Flow Packs V1 (Deterministic Baseline)
+### Phase 3 - Flow Packs V1 (Deterministic Baseline) *(engineering shipped; awaiting prod migration + ingest)*
 Scope:
-- Define flow-pack schema and version model.
-- Ship first flagship flow pack: `linkedin_salesnav -> hubspot`.
-- Add deterministic tests and sample fixtures.
-Exit criteria:
-- Stable deterministic mappings for common fields in flagship flow.
+- Define flow-pack schema and version model (`flow_packs`, `flow_pack_versions`, `flow_pack_field_mappings`).
+- Ship first flagship flow pack: `linkedin_salesnav -> hubspot` under `src/data/flows/`.
+- Add deterministic tests and sample fixtures (`tests/fixtures/flows/*.json`, `npm run flows:precision`).
+- New API surface: `POST /api/v1/flow/translate` (+ batch), `GET /api/v1/flows*` with the `read:flows` scope.
+- Dashboard at `/dashboard/flows` with version history + per-mapping inspection + inline test form.
+Exit criteria (engineering): ✓ schema, ingest, runtime, API, dashboard, fixtures, verify gates landed.
+Exit criteria (product, post-deploy): deterministic auto-apply rate at or above the flow's baseline, with no regression in normalize/translate precision.
 
 ### Phase 4 - Confidence Policy and Governance
 Scope:

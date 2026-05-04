@@ -17,6 +17,8 @@
     "verify:pack-health": "node --import tsx ./scripts/verify-pack-health.ts",
     "diagnose:crosswalk-gaps": "node --import tsx ./scripts/diagnose-crosswalk-gaps.ts",
     "inference:precision": "node --import tsx ./scripts/inference-precision.ts",
+    "flows:ingest": "node --import tsx ./scripts/ingest-flows.ts",
+    "flows:precision": "node --import tsx ./scripts/flows-precision.ts",
     "process:enrichment-jobs": "node --import tsx ./scripts/process-enrichment-jobs.ts",
     "export:pack": "node --import tsx ./scripts/export-pack.ts"
   },

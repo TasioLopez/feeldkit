@@ -16,6 +16,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   Sparkles,
+  Workflow,
   X,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
@@ -31,6 +32,7 @@ const mainNav: NavItem[] = [{ href: "/dashboard", label: "Overview", icon: Layou
 const dataNav: NavItem[] = [
   { href: "/dashboard/packs", label: "Packs", icon: Package },
   { href: "/dashboard/industry", label: "Industry", icon: Database },
+  { href: "/dashboard/flows", label: "Flows", icon: Workflow },
   { href: "/dashboard/imports", label: "Imports", icon: Database },
 ];
 

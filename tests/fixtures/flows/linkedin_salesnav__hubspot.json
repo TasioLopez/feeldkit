@@ -1,0 +1,47 @@
+{
+  "flow_key": "linkedin_salesnav__hubspot",
+  "cases": [
+    {
+      "name": "fully populated record",
+      "source_record": {
+        "full_name": "Ada Lovelace",
+        "headline": "Founder at FeeldKit",
+        "company_name": "FeeldKit",
+        "linkedin_url": "https://www.linkedin.com/in/ada",
+        "profile_id": "ACoAAAA1",
+        "company_industry": "Computer Software",
+        "company_country": "NL",
+        "company_employee_size_band": "11-50"
+      },
+      "expected": {
+        "matched_targets": ["firstname", "lastname", "jobtitle", "company", "linkedin_url", "external_id"],
+        "non_required_translates": ["company_industry", "company_country", "company_employee_size_band"]
+      }
+    },
+    {
+      "name": "missing translate-only fields",
+      "source_record": {
+        "full_name": "Grace Hopper",
+        "headline": "Rear Admiral",
+        "company_name": "United States Navy",
+        "linkedin_url": "https://www.linkedin.com/in/grace",
+        "profile_id": "ACoAAAA2"
+      },
+      "expected": {
+        "matched_targets": ["firstname", "lastname", "jobtitle", "company", "linkedin_url", "external_id"],
+        "skipped_translates": ["company_industry", "company_country", "company_employee_size_band"]
+      }
+    },
+    {
+      "name": "single-token full name keeps lastname empty",
+      "source_record": {
+        "full_name": "Cher",
+        "headline": "Performer"
+      },
+      "expected": {
+        "matched_targets": ["firstname", "jobtitle"],
+        "skipped_targets": ["lastname"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "contract": "feeldkit.flow_pack.v1",
+  "key": "linkedin_salesnav__hubspot",
+  "name": "LinkedIn Sales Navigator -> HubSpot",
+  "description": "Deterministic baseline flow that translates the most common LinkedIn Sales Navigator company/person fields into HubSpot. Translate-kind mappings only auto-apply when the canonical layer can resolve the value via crosswalks; ambiguous cases surface as unmapped so they route through the standard review queue.",
+  "source_system": "linkedin_salesnav",
+  "target_system": "hubspot",
+  "version": "1.0.0",
+  "changelog": "Initial flagship flow pack covering name split, headline, company, country, industry, and employee size band.",
+  "metadata": {
+    "owner": "feeldkit",
+    "stability": "v1-baseline",
+    "phase": 3
+  },
+  "field_mappings": [
+    {
+      "kind": "direct",
+      "source_field_key": "full_name",
+      "target_field_key": "firstname",
+      "is_required": false,
+      "transform": {
+        "op": "split_join",
+        "params": {
+          "split_on": " ",
+          "take": "first",
+          "trim": true
+        }
+      }
+    },
+    {
+      "kind": "direct",
+      "source_field_key": "full_name",
+      "target_field_key": "lastname",
+      "is_required": false,
+      "transform": {
+        "op": "split_join",
+        "params": {
+          "split_on": " ",
+          "take": "rest",
+          "join": " ",
+          "trim": true
+        }
+      }
+    },
+    {
+      "kind": "direct",
+      "source_field_key": "headline",
+      "target_field_key": "jobtitle",
+      "is_required": false,
+      "transform": { "op": "trim" }
+    },
+    {
+      "kind": "direct",
+      "source_field_key": "company_name",
+      "target_field_key": "company",
+      "is_required": false,
+      "transform": { "op": "trim" }
+    },
+    {
+      "kind": "direct",
+      "source_field_key": "linkedin_url",
+      "target_field_key": "linkedin_url",
+      "is_required": false,
+      "transform": { "op": "copy" }
+    },
+    {
+      "kind": "direct",
+      "source_field_key": "profile_id",
+      "target_field_key": "external_id",
+      "is_required": false,
+      "transform": { "op": "copy" }
+    },
+    {
+      "kind": "translate",
+      "source_field_key": "company_industry",
+      "target_field_key": "company_industry",
+      "is_required": false,
+      "options": {
+        "require_deterministic": true,
+        "min_confidence": 0.95
+      }
+    },
+    {
+      "kind": "translate",
+      "source_field_key": "company_country",
+      "target_field_key": "company_country",
+      "is_required": false,
+      "options": {
+        "require_deterministic": true,
+        "min_confidence": 0.95
+      }
+    },
+    {
+      "kind": "translate",
+      "source_field_key": "company_employee_size_band",
+      "target_field_key": "company_employee_size_band",
+      "is_required": false,
+      "options": {
+        "require_deterministic": true,
+        "min_confidence": 0.95
+      }
+    }
+  ]
+}

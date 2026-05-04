@@ -14,4 +14,10 @@ describe("api key auth", () => {
     expect(requireScope(key!, "normalize")).toBe(true);
     expect(requireScope(key!, "admin:reviews")).toBe(false);
   });
+
+  it("ALL_API_KEY_SCOPES includes read:flows", async () => {
+    const { ALL_API_KEY_SCOPES, DEFAULT_API_KEY_SCOPES } = await import("@/lib/auth/api-key");
+    expect(ALL_API_KEY_SCOPES).toContain("read:flows");
+    expect(DEFAULT_API_KEY_SCOPES).toContain("read:flows");
+  });
 });

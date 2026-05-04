@@ -109,3 +109,43 @@ export interface ParseResult {
   input: string;
   parsed: Record<string, unknown>;
 }
+
+export type FlowFieldMappingKind = "direct" | "translate";
+
+export interface FlowFieldMapping {
+  id: string;
+  flowPackVersionId: string;
+  ordinal: number;
+  kind: FlowFieldMappingKind;
+  sourceFieldKey: string;
+  targetFieldKey: string;
+  transform: Record<string, unknown>;
+  options: Record<string, unknown>;
+  isRequired: boolean;
+  status: EntityStatus;
+}
+
+export interface FlowPackVersion {
+  id: string;
+  flowPackId: string;
+  version: string;
+  changelog: string | null;
+  definition: Record<string, unknown>;
+  sourceSnapshot: Record<string, unknown>;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface FlowPack {
+  id: string;
+  key: string;
+  name: string;
+  description: string;
+  sourceSystem: string;
+  targetSystem: string;
+  status: EntityStatus;
+  isSystem: boolean;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
