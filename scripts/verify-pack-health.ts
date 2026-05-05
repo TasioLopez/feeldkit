@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { FEELDKIT_CANONICAL_REF_V1 } from "../src/lib/domain/canonical-ref";
+import { orgPolicyOverrideRowConsistent } from "../src/lib/governance/policy-override-check";
 import { assertPolicyConsistency } from "../src/lib/matching/inference/policy";
 import { runInference } from "../src/lib/matching/inference/engine";
 import { getFieldRepository } from "../src/lib/repositories/get-field-repository";
@@ -316,6 +317,148 @@ async function run() {
       if (!ok) failed = true;
     }
   }
+
+  // Phase 4 Wave 1 — governance gates
+  const governanceTables = [
+    "org_policy_overrides",
+    "org_field_locks",
+    "flow_pack_overrides",
+    "promoted_decisions",
+  ] as const;
+  let governanceTablesOk = true;
+  for (const table of governanceTables) {
+    const { error: govErr } = await admin.from(table).select("id", { head: true });
+    const ok = !govErr;
+    console.log(`${ok ? "[OK]" : "[LOW]"} governance_tables_present table=${table}`);
+    if (!ok) {
+      governanceTablesOk = false;
+      console.log(`  [LOW] ${govErr?.message ?? "unknown error"}`);
+    }
+  }
+  if (!governanceTablesOk) failed = true;
+
+  const auditPingAction = "verify.pack_health_ping";
+  const { data: pingInsert, error: pingErr } = await admin
+    .from("audit_logs")
+    .insert({
+      organization_id: null,
+      actor_id: null,
+      action: auditPingAction,
+      entity_type: "health_check",
+      entity_id: null,
+    })
+    .select("id")
+    .maybeSingle();
+  let auditWritableOk = Boolean(pingInsert?.id) && !pingErr;
+  if (pingInsert?.id) {
+    const { error: delPingErr } = await admin.from("audit_logs").delete().eq("id", pingInsert.id);
+    if (delPingErr) {
+      auditWritableOk = false;
+      console.log(`[LOW] audit_logs_writable cleanup_failed ${delPingErr.message}`);
+    }
+  }
+  console.log(`${auditWritableOk ? "[OK]" : "[LOW]"} audit_logs_writable`);
+  if (pingErr && !auditWritableOk) {
+    console.log(`  [LOW] ${pingErr.message}`);
+  }
+  if (!auditWritableOk) failed = true;
+
+  const { data: policyOverrideRows, error: poErr } = await admin
+    .from("org_policy_overrides")
+    .select("id, matched, suggested");
+  let policyOverridesConsistent = !poErr;
+  if (!poErr && policyOverrideRows) {
+    for (const row of policyOverrideRows) {
+      if (!orgPolicyOverrideRowConsistent(row.matched, row.suggested)) {
+        policyOverridesConsistent = false;
+        console.log(`  [LOW] org_policy_override_invalid id=${row.id} matched=${row.matched} suggested=${row.suggested}`);
+      }
+    }
+  }
+  console.log(`${policyOverridesConsistent ? "[OK]" : "[LOW]"} org_policy_overrides_consistent`);
+  if (poErr) {
+    policyOverridesConsistent = false;
+    console.log(`  [LOW] ${poErr.message}`);
+  }
+  if (!policyOverridesConsistent) failed = true;
+
+  const { data: promotedRows, error: prErr } = await admin.from("promoted_decisions").select("id, target_table, target_id").limit(500);
+  let promotedLinksOk = !prErr;
+  if (!prErr && promotedRows) {
+    for (const row of promotedRows) {
+      const table = row.target_table as string;
+      const tid = row.target_id as string;
+      if (table !== "field_aliases" && table !== "field_crosswalks" && table !== "field_values") {
+        promotedLinksOk = false;
+        console.log(`  [LOW] promoted_decisions_unknown_target_table id=${row.id} table=${table}`);
+        continue;
+      }
+      const { data: exists } = await admin.from(table).select("id").eq("id", tid).maybeSingle();
+      if (!exists?.id) {
+        promotedLinksOk = false;
+        console.log(`  [LOW] promoted_decisions_broken_target id=${row.id} table=${table}`);
+      }
+    }
+  }
+  console.log(`${promotedLinksOk ? "[OK]" : "[LOW]"} promoted_decisions_link_intact`);
+  if (prErr) {
+    promotedLinksOk = false;
+    console.log(`  [LOW] ${prErr.message}`);
+  }
+  if (!promotedLinksOk) failed = true;
+
+  // Phase 4 Wave 2 — governance runtime gates
+  const { data: lifecycleRows } = await admin.from("flow_pack_versions").select("flow_pack_id,is_active,lifecycle");
+  const activePublishedCounts = new Map<string, number>();
+  for (const row of lifecycleRows ?? []) {
+    if (row.is_active && row.lifecycle === "published") {
+      const fp = row.flow_pack_id as string;
+      activePublishedCounts.set(fp, (activePublishedCounts.get(fp) ?? 0) + 1);
+    }
+  }
+  let lifecycleOk = true;
+  for (const [fp, count] of activePublishedCounts) {
+    if (count > 1) {
+      lifecycleOk = false;
+      console.log(`  [LOW] flow_lifecycle_duplicate_active flow_pack_id=${fp} count=${count}`);
+    }
+  }
+  console.log(`${lifecycleOk ? "[OK]" : "[LOW]"} flow_lifecycle_consistent`);
+  if (!lifecycleOk) failed = true;
+
+  const { data: foRows } = await admin.from("flow_pack_overrides").select("id,flow_pack_id,flow_pack_version_id,ordinal,action");
+  let foResolvableOk = true;
+  for (const fo of foRows ?? []) {
+    if (fo.action === "pin_version") continue;
+    let vid = fo.flow_pack_version_id as string | null;
+    const ord = fo.ordinal as number | null;
+    if (!vid) {
+      const { data: activeRow } = await admin
+        .from("flow_pack_versions")
+        .select("id")
+        .eq("flow_pack_id", fo.flow_pack_id as string)
+        .eq("is_active", true)
+        .maybeSingle();
+      vid = (activeRow?.id as string | undefined) ?? null;
+    }
+    if (!vid || ord === null) {
+      foResolvableOk = false;
+      console.log(`  [LOW] flow_override_missing_version_or_ordinal id=${fo.id}`);
+      continue;
+    }
+    const { data: mapping } = await admin
+      .from("flow_pack_field_mappings")
+      .select("id")
+      .eq("flow_pack_version_id", vid)
+      .eq("ordinal", ord)
+      .maybeSingle();
+    if (!mapping?.id) {
+      foResolvableOk = false;
+      console.log(`  [LOW] flow_override_mapping_missing override_id=${fo.id} version=${vid} ordinal=${ord}`);
+    }
+  }
+  console.log(`${foResolvableOk ? "[OK]" : "[LOW]"} flow_overrides_resolvable`);
+  if (!foResolvableOk) failed = true;
 
   if (!report) {
     console.log("[WARN] import report not found; skipping consistency checks against .generated/full-v1-import-report.json");

@@ -149,7 +149,7 @@ test form that posts to the public route under the current session.
 
 - All flow tables expose **public read** RLS (mirroring `field_packs`). Writes go through the
   service role only — there is no per-org write path in V1.
-- Per-org overrides (`flow_pack_overrides`) are deferred to Phase 4 governance.
+- Per-org overrides (`flow_pack_overrides`) ship in Phase 4 — see [`docs/GOVERNANCE.md`](GOVERNANCE.md) and `trace.applied_overrides` on `/api/v1/flow/translate` responses.
 - The runtime never auto-applies non-deterministic candidates in V1, so a misconfigured flow
   cannot widen the auto-apply blast radius beyond Phase 2's existing thresholds.
 

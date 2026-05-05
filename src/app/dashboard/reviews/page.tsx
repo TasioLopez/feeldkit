@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getAdminActorContext } from "@/lib/auth/admin-context";
 import { listReviewQueue } from "@/lib/matching/review-queue";
 import { listPendingEnrichmentProposals } from "@/lib/enrichment/proposal-service";
@@ -6,11 +7,14 @@ import { inferDomain } from "@/lib/matching/inference/policy";
 import type { ExplainV1 } from "@/lib/matching/inference/explain";
 import {
   approveReviewAction,
+  bulkApproveMappingReviewsAction,
   bulkApprovePendingProposalsAction,
+  bulkRejectMappingReviewsAction,
   bulkRejectPendingProposalsAction,
   decideEnrichmentProposalAction,
   decideEnrichmentProposalWithEditsAction,
   rejectReviewAction,
+  undoReviewAction,
 } from "./actions";
 import { DataToolbar } from "@/components/dashboard/data-toolbar";
 import { Reveal } from "@/components/motion/reveal";
@@ -45,6 +49,24 @@ function tryParseExplain(payload: unknown): ExplainV1 | null {
   return candidate as ExplainV1;
 }
 
+function formatDecisionLatencyMs(reviewedAt: string | null, createdAt: string): string {
+  if (!reviewedAt) return "—";
+  const ms = new Date(reviewedAt).getTime() - new Date(createdAt).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return "—";
+  if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
+  if (ms < 3_600_000) return `${Math.round(ms / 60_000)}m`;
+  return `${Math.round(ms / 3_600_000)}h`;
+}
+
+function queueAgeLabel(createdAt: string, status: string): string | null {
+  if (status !== "pending") return null;
+  const ms = Date.now() - new Date(createdAt).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return null;
+  if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
+  if (ms < 3_600_000) return `${Math.round(ms / 60_000)}m`;
+  return `${Math.round(ms / 3_600_000)}h`;
+}
+
 export default async function DashboardReviewsPage({
   searchParams,
 }: {
@@ -73,6 +95,7 @@ export default async function DashboardReviewsPage({
     );
   });
   const proposalIdsCsv = proposals.map((item) => item.id).join(",");
+  const pendingReviewIdsCsv = reviews.filter((r) => r.status === "pending").map((r) => r.id).join(",");
   return (
     <div className="space-y-6">
       <PageHeader
@@ -122,6 +145,24 @@ export default async function DashboardReviewsPage({
         }
       />
       </Reveal>
+      {reviews.some((r) => r.status === "pending") ? (
+        <Reveal delay={0.02}>
+          <div className="flex flex-wrap gap-2">
+            <form action={bulkApproveMappingReviewsAction}>
+              <input type="hidden" name="review_ids" value={pendingReviewIdsCsv} />
+              <Button type="submit" size="sm" variant="brand">
+                Bulk approve pending reviews (visible)
+              </Button>
+            </form>
+            <form action={bulkRejectMappingReviewsAction}>
+              <input type="hidden" name="review_ids" value={pendingReviewIdsCsv} />
+              <Button type="submit" size="sm" variant="soft">
+                Bulk reject pending reviews (visible)
+              </Button>
+            </form>
+          </div>
+        </Reveal>
+      ) : null}
       <div className="space-y-3">
         {reviews.length === 0 ? (
           <Reveal>
@@ -146,6 +187,12 @@ export default async function DashboardReviewsPage({
                       <Badge variant={item.status === "pending" ? "warning" : item.status === "approved" ? "success" : "muted"}>
                         {item.status}
                       </Badge>
+                      {queueAgeLabel(item.createdAt, item.status) ? (
+                        <Badge variant="outline">queued {queueAgeLabel(item.createdAt, item.status)}</Badge>
+                      ) : null}
+                      {item.status !== "pending" ? (
+                        <Badge variant="muted">decided in {formatDecisionLatencyMs(item.reviewedAt, item.createdAt)}</Badge>
+                      ) : null}
                     </div>
                   </div>
                   <CardDescription className="font-mono text-xs text-muted-foreground">
@@ -168,20 +215,35 @@ export default async function DashboardReviewsPage({
                       </p>
                     </details>
                   ) : null}
-                  {item.status === "pending" ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <form action={approveReviewAction.bind(null, item.id, item.suggestedValueId)}>
-                        <Button type="submit" size="sm" variant="brand">
-                          Approve
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {item.status === "pending" ? (
+                      <>
+                        <form action={approveReviewAction.bind(null, item.id, item.suggestedValueId)}>
+                          <Button type="submit" size="sm" variant="brand">
+                            Approve
+                          </Button>
+                        </form>
+                        <form action={rejectReviewAction.bind(null, item.id)}>
+                          <Button type="submit" size="sm" variant="soft">
+                            Reject
+                          </Button>
+                        </form>
+                      </>
+                    ) : null}
+                    {item.status === "approved" ? (
+                      <form action={undoReviewAction.bind(null, item.id)}>
+                        <Button type="submit" size="sm" variant="outline">
+                          Undo approval
                         </Button>
                       </form>
-                      <form action={rejectReviewAction.bind(null, item.id)}>
-                        <Button type="submit" size="sm" variant="soft">
-                          Reject
-                        </Button>
-                      </form>
-                    </div>
-                  ) : null}
+                    ) : null}
+                    <Link
+                      href={`/dashboard/audit?entity_type=mapping_reviews&entity_id=${encodeURIComponent(item.id)}`}
+                      className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                    >
+                      View audit
+                    </Link>
+                  </div>
                 </CardHeader>
                 </Card>
               </Reveal>

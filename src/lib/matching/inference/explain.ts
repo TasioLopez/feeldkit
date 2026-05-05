@@ -41,7 +41,14 @@ export type ExplainV1 = {
   winner: ExplainV1Winner;
   alternates: ExplainV1Alternate[];
   signals: ExplainV1Signal[];
-  policy: { domain: string; thresholds: { matched: number; suggested: number }; reason: string };
+  policy: {
+    domain: string;
+    thresholds: { matched: number; suggested: number };
+    reason: string;
+    /** Present when org governance resolved thresholds (Phase 4 Wave 2+). */
+    thresholds_source?: "default" | "org_override";
+    lock?: "require_review" | "disable_auto_apply" | null;
+  };
   priors: { decision_count: number; last_decision_at: string | null };
 };
 
@@ -66,6 +73,7 @@ export function buildExplain(args: {
   policyDomain: string;
   priorDecisionCount: number;
   lastDecisionAt: string | null;
+  policyAugmentation?: Partial<Pick<ExplainV1["policy"], "thresholds_source" | "lock">>;
 }): ExplainV1 {
   const winner: ExplainV1Winner = args.winner
     ? {
@@ -103,6 +111,7 @@ export function buildExplain(args: {
       domain: args.policyDomain,
       thresholds: args.decision.thresholds,
       reason: args.decision.reason,
+      ...args.policyAugmentation,
     },
     priors: { decision_count: args.priorDecisionCount, last_decision_at: args.lastDecisionAt },
   };

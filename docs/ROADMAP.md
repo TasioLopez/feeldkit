@@ -23,10 +23,10 @@
 - Verify gates: `flow_packs_present`, `flow_field_mappings_resolvable`, `flow_translate_deterministic_baseline`.
 - Exit criteria: flagship flow pack ingested and verified per environment, deterministic precision report on baseline.
 
-## Phase 4: Confidence Policy and Governance
-- Domain thresholds and policy gating (auto-apply vs review).
-- Harden review and rollback workflows.
-- Exit criteria: review load shifts to ambiguous edge cases only.
+## Phase 4: Confidence Policy and Governance *(engineering shipped on main; apply migrations + ops checklist per env)*
+- Per-org domain thresholds, field locks, flow overrides + lifecycle controls (`docs/GOVERNANCE.md`).
+- Audit log + promoted-decision undo + admin APIs (`admin:policies`, `admin:flows`).
+- Exit criteria: governance surfaces exercised in staging/prod; review undo round-trip verified.
 
 ## Phase 5: Learning Loop
 - Promote approved decisions into reusable aliases/crosswalk assets.

@@ -26,7 +26,9 @@ Every `/api/v1/normalize`, `/api/v1/normalize/batch`, `/api/v1/translate`, `/api
   "policy": {
     "domain": "industry",
     "thresholds": { "matched": 0.92, "suggested": 0.7 },
-    "reason": "score>=0.92 for domain=industry"
+    "reason": "score>=0.92 for domain=industry",
+    "thresholds_source": "org_override",
+    "lock": null
   },
   "priors": { "decision_count": 0, "last_decision_at": null }
 }
@@ -50,6 +52,8 @@ Every `/api/v1/normalize`, `/api/v1/normalize/batch`, `/api/v1/translate`, `/api
 | `signals[].ref` | object \| undefined | Pointer back to the row that produced the signal (alias, value, crosswalk) |
 | `policy` | object | Policy that classified this score |
 | `policy.thresholds` | `{ matched, suggested }` | Snapshot, in case a domain policy is retuned later |
+| `policy.thresholds_source` (optional) | `"default" \| "org_override"` | Phase 4 governance — whether thresholds came from code defaults vs `org_policy_overrides` |
+| `policy.lock` (optional) | `"require_review" \| "disable_auto_apply" \| null` | Phase 4 — active `org_field_locks.mode` for this field key, if any |
 | `priors.decision_count` | int | Approved/aliased decisions for the **(field_type, normalized_input)** pair |
 | `priors.last_decision_at` | string \| null | ISO timestamp of the most recent matching prior decision |
 

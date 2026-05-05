@@ -15,6 +15,8 @@ import {
   Package,
   PanelLeftClose,
   PanelLeft,
+  ScrollText,
+  Shield,
   Sparkles,
   Workflow,
   X,
@@ -38,6 +40,8 @@ const dataNav: NavItem[] = [
 
 const opsNav: NavItem[] = [
   { href: "/dashboard/reviews", label: "Reviews", icon: ListTodo },
+  { href: "/dashboard/governance", label: "Governance", icon: Shield },
+  { href: "/dashboard/audit", label: "Audit", icon: ScrollText },
   { href: "/dashboard/enrichment", label: "AI Enricher", icon: Sparkles },
 ];
 

@@ -13,7 +13,7 @@ field mapping work while preserving explainability and governance.
 - **Phase 2 closed (engineering):** Inference Engine V1 is implemented on `main` — per-signal scoring, per-domain policy ([INFERENCE_POLICY.md](INFERENCE_POLICY.md)), `explain.v1` on normalize and translate ([EXPLAIN_CONTRACT.md](EXPLAIN_CONTRACT.md)), prior-decision and hierarchy signals, `translateOne` plus batch routes, `mapping_reviews` columns for `confidence` / `explain_payload`, reviews dashboard surfacing, verify gates (`verify:pack-health`, optional `inference:precision`). Public API handlers rebuild `Request` from URL/init (not `new Request(incoming)`) for Vercel/undici compatibility.
 - **Phase 3 closed (engineering):** Flow Packs V1 (Deterministic Baseline) is implemented on `main` — `flow_packs` / `flow_pack_versions` / `flow_pack_field_mappings` schema, `feeldkit.flow_pack.v1` JSON contract, flagship `linkedin_salesnav -> hubspot` definition under `src/data/flows/`, `runFlow` deterministic engine, `npm run flows:ingest` ingest, `read:flows` API scope, public `/api/v1/flow/*` and `/api/v1/flows*` routes, dashboard at `/dashboard/flows`, fixtures + `flows:precision` report, and `verify:pack-health` flow gates. See [FLOW_PACK_SPEC.md](FLOW_PACK_SPEC.md).
 - **Product tuning (ongoing, not blocking Phase 4 planning):** raise inference precision baselines, raise the flagship flow's deterministic baseline as HubSpot value-list crosswalks land, and grow the flow-pack catalog (HubSpot -> SalesNav inverse, Apollo, Clearbit, etc.).
-- **Known gap (Phase 4):** confidence/governance policy hardening for promoted decisions and per-org overrides on flow packs.
+- **Phase 4 closed (engineering):** governance schema (`org_policy_*`, `flow_pack_overrides`, `promoted_decisions`), audit helper + review undo, effective policy resolution wired through `runInference`/`translateOne`, flow overrides + `trace.applied_overrides`, flow lifecycle columns + retire/rollback (`npm run flows:rollback`), admin APIs & dashboard surfaces — see [`docs/GOVERNANCE.md`](GOVERNANCE.md).
 
 ## Pre–Phase 4 checklist (short)
 
@@ -31,7 +31,7 @@ field mapping work while preserving explainability and governance.
 | Governance (recommended) | Decide rollout policy for new flow versions (manual ingest vs auto on deploy) and how to bump deterministic baselines as crosswalk coverage grows. |
 | Observability (recommended) | Enable `SENTRY_DSN` or equivalent so 5xx on `/api/v1/flow/*` are diagnosable without empty client bodies. |
 
-**Next step:** produce the **Phase 4 — Confidence Policy and Governance** plan (per-org overrides on flow mappings, promoted-decision feedback, hardened rollback for flow versions).
+**Ops:** apply Phase 4 migrations, rerun `flows:ingest`, and smoke governance APIs/dashboard flows documented in [`docs/DEPLOYMENT.md`](DEPLOYMENT.md).
 
 ## Target State
 - Reliable source ingestion with strict quality gates.

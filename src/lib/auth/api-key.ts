@@ -8,7 +8,9 @@ export type ApiScope =
   | "validate"
   | "parse"
   | "admin:reviews"
-  | "admin:fields";
+  | "admin:fields"
+  | "admin:policies"
+  | "admin:flows";
 
 /** Every scope that may be granted to an API key (server validation + dashboard UI). */
 export const ALL_API_KEY_SCOPES: readonly ApiScope[] = [
@@ -20,6 +22,8 @@ export const ALL_API_KEY_SCOPES: readonly ApiScope[] = [
   "parse",
   "admin:reviews",
   "admin:fields",
+  "admin:policies",
+  "admin:flows",
 ];
 
 /** Default scopes pre-selected in the dashboard when creating a key. */

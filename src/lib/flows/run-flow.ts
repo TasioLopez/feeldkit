@@ -4,7 +4,13 @@ import { translateOne, type TranslateResponse } from "@/lib/translate/translate-
 import type { FlowFieldMapping, FlowPack, FlowPackVersion } from "@/lib/domain/types";
 import type { IFlowRepository } from "@/lib/flows/flow-repository.interface";
 import { getFlowRepository } from "@/lib/flows/get-flow-repository";
+import {
+  applyFlowMappingOverrides,
+  appliedOverridesForOrdinal,
+  selectPinnedFlowVersionId,
+} from "@/lib/flows/overrides";
 import { applyFlowTransform } from "@/lib/flows/transforms";
+import { getGovernanceRepository } from "@/lib/governance/get-governance-repository";
 import { type FlowTransform } from "@/lib/flows/schema";
 
 export const flowTranslateRequestSchema = z.object({
@@ -30,6 +36,7 @@ export interface FlowFieldOutput {
   reason: string | null;
   is_required: boolean;
   explain: ExplainV1 | null;
+  trace?: { applied_overrides: string[] };
 }
 
 export interface FlowTranslateResponse {
@@ -42,6 +49,7 @@ export interface FlowTranslateResponse {
     deterministic_only: true;
     flow_pack_version_id: string | null;
     fallbacks: { translate_via_inference_count: 0 };
+    applied_overrides?: string[];
   };
 }
 
@@ -58,7 +66,24 @@ export async function runFlow(
   const parsed = flowTranslateRequestSchema.parse(request);
   const repo = deps.repo ?? getFlowRepository();
   const translateFn = deps.translate ?? translateOne;
-  const versionEntry = await repo.getFlowVersion(parsed.flow_key, parsed.version);
+  let versionEntry = await repo.getFlowVersion(parsed.flow_key, parsed.version);
+
+  let appliedOverrideLabels: string[] = [];
+
+  if (versionEntry && parsed.organization_id) {
+    const governance = getGovernanceRepository();
+    const overrideRows = await governance.listFlowPackOverrides(parsed.organization_id, versionEntry.pack.id);
+    const pinId = selectPinnedFlowVersionId(overrideRows);
+    if (pinId) {
+      const pinned = await repo.getFlowVersionById(pinId);
+      if (pinned) {
+        versionEntry = pinned;
+      }
+    }
+    const adjusted = applyFlowMappingOverrides(versionEntry.mappings, overrideRows);
+    versionEntry = { ...versionEntry, mappings: adjusted.mappings };
+    appliedOverrideLabels = adjusted.appliedOverrides;
+  }
 
   if (!versionEntry) {
     return {
@@ -71,6 +96,7 @@ export async function runFlow(
         deterministic_only: true,
         flow_pack_version_id: null,
         fallbacks: { translate_via_inference_count: 0 },
+        applied_overrides: [],
       },
     };
   }
@@ -78,11 +104,12 @@ export async function runFlow(
   const fields: FlowFieldOutput[] = [];
   for (const mapping of versionEntry.mappings) {
     const sourceValue = parsed.source_record[mapping.sourceFieldKey];
+    const ordTrace = { applied_overrides: appliedOverridesForOrdinal(appliedOverrideLabels, mapping.ordinal) };
     if (mapping.kind === "direct") {
-      fields.push(handleDirect(mapping, sourceValue));
+      fields.push({ ...handleDirect(mapping, sourceValue), trace: ordTrace });
     } else {
       const output = await handleTranslate(mapping, sourceValue, parsed, translateFn);
-      fields.push(output);
+      fields.push({ ...output, trace: ordTrace });
     }
   }
 
@@ -103,6 +130,7 @@ export async function runFlow(
       deterministic_only: true,
       flow_pack_version_id: versionEntry.version.id,
       fallbacks: { translate_via_inference_count: 0 },
+      applied_overrides: appliedOverrideLabels,
     },
   };
 }

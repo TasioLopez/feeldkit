@@ -137,6 +137,9 @@ async function ingestOne(admin: AdminClient, definition: FlowPackV1): Promise<Fl
         changelog: definition.changelog ?? null,
         definition: definition as unknown as Record<string, unknown>,
         is_active: true,
+        lifecycle: "published",
+        published_at: new Date().toISOString(),
+        retired_at: null,
       })
       .eq("id", versionId);
     if (versionUpdateError) {
@@ -144,6 +147,7 @@ async function ingestOne(admin: AdminClient, definition: FlowPackV1): Promise<Fl
     }
     status = "updated";
   } else {
+    const nowIso = new Date().toISOString();
     const { data: insertedVersion, error: versionInsertError } = await admin
       .from("flow_pack_versions")
       .insert({
@@ -152,6 +156,9 @@ async function ingestOne(admin: AdminClient, definition: FlowPackV1): Promise<Fl
         changelog: definition.changelog ?? null,
         definition: definition as unknown as Record<string, unknown>,
         is_active: true,
+        lifecycle: "published",
+        published_at: nowIso,
+        retired_at: null,
       })
       .select("id")
       .single();

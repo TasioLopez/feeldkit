@@ -26,6 +26,9 @@ const STATIC_VERSION: FlowPackVersion = {
   definition: {},
   sourceSnapshot: {},
   isActive: true,
+  lifecycle: "published",
+  publishedAt: new Date(0).toISOString(),
+  retiredAt: null,
   createdAt: new Date(0).toISOString(),
 };
 
@@ -35,6 +38,7 @@ function makeRepo(mappings: FlowFieldMapping[]): IFlowRepository {
     listFlows: async () => [STATIC_PACK],
     getFlowByKey: async (key) => (key === STATIC_PACK.key ? STATIC_PACK : null),
     getFlowVersion: async (key) => (key === STATIC_PACK.key ? entry : null),
+    getFlowVersionById: async (id) => (id === STATIC_VERSION.id ? entry : null),
     listVersions: async (key) => (key === STATIC_PACK.key ? [STATIC_VERSION] : []),
   };
 }

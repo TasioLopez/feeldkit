@@ -14,7 +14,11 @@ import { loadPriors, priorSignalForValue, priorTotalForValueIds } from "@/lib/ma
 import type { ScoredCandidate, CandidateSignals } from "@/lib/matching/inference/scorer";
 import { scoreCandidates } from "@/lib/matching/inference/scorer";
 import type { PolicyDecision } from "@/lib/matching/inference/policy";
-import { classifyWithPolicy, inferDomain } from "@/lib/matching/inference/policy";
+import { getGovernanceRepository } from "@/lib/governance/get-governance-repository";
+import {
+  classifyWithEffectivePolicy,
+  resolveEffectivePolicy,
+} from "@/lib/matching/inference/effective-policy";
 import { buildExplain, emptyExplain, type ExplainV1 } from "@/lib/matching/inference/explain";
 import type { Signal } from "@/lib/matching/inference/signal";
 
@@ -119,24 +123,39 @@ export async function runInference(input: InferenceInput, repo: IFieldRepository
   const scored = scoreCandidates(withPriors);
   const winner = scored[0] ?? null;
   const winnerScore = winner?.finalScore ?? 0;
-  const decision = classifyWithPolicy(winnerScore, resolvedFieldKey);
-  const policyDomain = inferDomain(resolvedFieldKey);
+
+  const governance = getGovernanceRepository();
+  const effective = await resolveEffectivePolicy(governance, input.organizationId ?? null, resolvedFieldKey);
+  const decision = classifyWithEffectivePolicy(winnerScore, effective);
+  const policyAugmentation = {
+    thresholds_source: effective.thresholdsSource,
+    lock: effective.fieldLock?.mode ?? null,
+  };
 
   const priorDecisionCount = priorTotalForValueIds(priors, winner ? [winner.value.id] : []);
   const lastDecisionAt = winner ? priors.lastByValueId.get(winner.value.id) ?? null : null;
 
-  const explain = winner
+  const explain: ExplainV1 = winner
     ? buildExplain({
         fieldKey: input.fieldKey,
         resolvedFieldKey,
         decision,
         winner,
         alternates: scored.slice(1),
-        policyDomain,
+        policyDomain: effective.domain,
         priorDecisionCount,
         lastDecisionAt,
+        policyAugmentation,
       })
-    : { ...emptyExplain(input.fieldKey, resolvedFieldKey), policy: { domain: policyDomain, thresholds: decision.thresholds, reason: decision.reason } };
+    : {
+        ...emptyExplain(input.fieldKey, resolvedFieldKey),
+        policy: {
+          domain: effective.domain,
+          thresholds: effective.thresholds,
+          reason: classifyWithEffectivePolicy(0, effective).reason,
+          ...policyAugmentation,
+        },
+      };
 
   return {
     fieldKey: input.fieldKey,

@@ -2,7 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { assertAdminRole, getAdminActorContext } from "@/lib/auth/admin-context";
+import { writeAudit } from "@/lib/governance/audit";
 import { setReviewDecision } from "@/lib/reviews/review-service";
+import {
+  fetchAliasRowForReview,
+  PROMOTED_ALIAS_ABSENT,
+  recordReviewAliasPromotion,
+  undoPromotedReviewDecision,
+} from "@/lib/reviews/review-promotion";
 import { decideEnrichmentProposal } from "@/lib/enrichment/proposal-service";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
 import { normalizeText } from "@/lib/matching/normalize-text";
@@ -32,6 +39,10 @@ export async function approveReviewAction(reviewId: string, selectedValueId?: st
   if (!resolvedValueId) {
     return;
   }
+  const normalizedAlias = normalizeText(row.input as string);
+  const existingAlias = await fetchAliasRowForReview(admin, row.field_type_id as string, normalizedAlias);
+  const snapshotBefore = existingAlias ?? PROMOTED_ALIAS_ABSENT;
+
   const decision = await setReviewDecision({
     reviewId,
     organizationId: actor.organizationId,
@@ -48,7 +59,7 @@ export async function approveReviewAction(reviewId: string, selectedValueId?: st
       field_value_id: resolvedValueId,
       field_type_id: row.field_type_id,
       alias: row.input,
-      normalized_alias: normalizeText(row.input as string),
+      normalized_alias: normalizedAlias,
       locale: null,
       source: "review_approval",
       confidence: 0.95,
@@ -56,6 +67,16 @@ export async function approveReviewAction(reviewId: string, selectedValueId?: st
     },
     { onConflict: "field_type_id,normalized_alias" },
   );
+
+  await recordReviewAliasPromotion({
+    admin,
+    reviewId,
+    organizationId: actor.organizationId,
+    actorId: actor.userId,
+    fieldTypeId: row.field_type_id as string,
+    normalizedAlias,
+    snapshotBefore,
+  });
   revalidatePath("/dashboard/reviews");
 }
 
@@ -67,6 +88,7 @@ export async function rejectReviewAction(reviewId: string): Promise<void> {
   } catch {
     return;
   }
+  const admin = getSupabaseServiceClient();
   const decision = await setReviewDecision({
     reviewId,
     organizationId: actor.organizationId,
@@ -75,6 +97,80 @@ export async function rejectReviewAction(reviewId: string): Promise<void> {
   });
   if (!decision.ok) {
     return;
+  }
+  if (admin) {
+    const auditId = await writeAudit({
+      organizationId: actor.organizationId,
+      actorId: actor.userId,
+      action: "review.reject",
+      entityType: "mapping_reviews",
+      entityId: reviewId,
+      after: { status: "rejected" },
+    });
+    if (auditId) {
+      await admin
+        .from("mapping_reviews")
+        .update({ decision_audit_id: auditId })
+        .eq("id", reviewId)
+        .eq("organization_id", actor.organizationId);
+    }
+  }
+  revalidatePath("/dashboard/reviews");
+}
+
+export async function undoReviewAction(reviewId: string): Promise<void> {
+  const actor = await getAdminActorContext();
+  if (!actor) return;
+  try {
+    assertAdminRole(actor.role, "review mappings");
+  } catch {
+    return;
+  }
+  const admin = getSupabaseServiceClient();
+  if (!admin) return;
+  await undoPromotedReviewDecision({
+    admin,
+    reviewId,
+    organizationId: actor.organizationId,
+    actorId: actor.userId,
+  });
+  revalidatePath("/dashboard/reviews");
+}
+
+export async function bulkApproveMappingReviewsAction(formData: FormData): Promise<void> {
+  const actor = await getAdminActorContext();
+  if (!actor) return;
+  try {
+    assertAdminRole(actor.role, "review mappings");
+  } catch {
+    return;
+  }
+  const ids = String(formData.get("review_ids") ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean)
+    .slice(0, 200);
+  for (const id of ids) {
+    await approveReviewAction(id, null);
+  }
+  revalidatePath("/dashboard/reviews");
+}
+
+export async function bulkRejectMappingReviewsAction(formData: FormData): Promise<void> {
+  const actor = await getAdminActorContext();
+  if (!actor) return;
+  try {
+    assertAdminRole(actor.role, "review mappings");
+  } catch {
+    return;
+  }
+  const ids = String(formData.get("review_ids") ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean)
+    .slice(0, 200);
+  for (const id of ids) {
+    await rejectReviewAction(id);
   }
   revalidatePath("/dashboard/reviews");
 }

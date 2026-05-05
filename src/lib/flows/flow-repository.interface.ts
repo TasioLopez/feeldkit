@@ -18,5 +18,7 @@ export interface IFlowRepository {
    * Resolves the denormalized mapping rows for fast iteration during runtime.
    */
   getFlowVersion(flowKey: string, version?: string): Promise<FlowVersionWithMappings | null>;
+  /** Resolve a version row by primary key (used for org pin_version overrides). */
+  getFlowVersionById(versionId: string): Promise<FlowVersionWithMappings | null>;
   listVersions(flowKey: string): Promise<FlowPackVersion[]>;
 }

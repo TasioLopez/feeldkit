@@ -24,7 +24,7 @@ type KeyRow = {
   revoked_at: string | null;
 };
 
-const ADMIN_SCOPES: readonly ApiScope[] = ["admin:reviews", "admin:fields"];
+const ADMIN_SCOPES: readonly ApiScope[] = ["admin:reviews", "admin:fields", "admin:policies", "admin:flows"];
 
 function isAdminScope(scope: ApiScope): boolean {
   return ADMIN_SCOPES.includes(scope);

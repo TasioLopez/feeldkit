@@ -125,6 +125,8 @@ export interface FlowFieldMapping {
   status: EntityStatus;
 }
 
+export type FlowPackLifecycle = "draft" | "published" | "retired";
+
 export interface FlowPackVersion {
   id: string;
   flowPackId: string;
@@ -133,6 +135,9 @@ export interface FlowPackVersion {
   definition: Record<string, unknown>;
   sourceSnapshot: Record<string, unknown>;
   isActive: boolean;
+  lifecycle: FlowPackLifecycle;
+  publishedAt: string | null;
+  retiredAt: string | null;
   createdAt: string;
 }
 

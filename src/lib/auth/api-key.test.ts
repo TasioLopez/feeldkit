@@ -20,4 +20,10 @@ describe("api key auth", () => {
     expect(ALL_API_KEY_SCOPES).toContain("read:flows");
     expect(DEFAULT_API_KEY_SCOPES).toContain("read:flows");
   });
+
+  it("ALL_API_KEY_SCOPES includes governance scopes", async () => {
+    const { ALL_API_KEY_SCOPES } = await import("@/lib/auth/api-key");
+    expect(ALL_API_KEY_SCOPES).toContain("admin:policies");
+    expect(ALL_API_KEY_SCOPES).toContain("admin:flows");
+  });
 });

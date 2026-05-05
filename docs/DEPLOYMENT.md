@@ -99,6 +99,13 @@ For full production V1 imports (geo, modular `standards_*` packs, industry, jobs
 - **Dashboard:** `/dashboard/flows` lists active flows with direct/translate counts; `/dashboard/flows/{flowKey}` shows version history, per-mapping table, and an inline test form that calls the public endpoint.
 - **Rollback:** revert routes/dashboard commit; the `flow_pack_*` tables are read-only and harmless. Hard rollback: `drop table flow_pack_field_mappings, flow_pack_versions, flow_packs cascade;` then re-run prior verify.
 
+### Phase 4 — Governance & confidence policy
+
+- **Migrations:** `20260506000000_phase4_governance.sql` (policy overrides, locks, flow overrides, promoted decisions, `mapping_reviews` audit links) and `20260506100000_phase4_wave2_flow_lifecycle.sql` (`lifecycle`, `published_at`, `retired_at` on `flow_pack_versions`).
+- **Re-ingest flows:** after Wave 2 migration, run `npm run flows:ingest` so active versions pick up lifecycle metadata.
+- **Docs:** [`docs/GOVERNANCE.md`](GOVERNANCE.md) — scopes (`admin:policies`, `admin:flows`), undo semantics, rollback script.
+- **Verify:** `npm run verify:pack-health` adds governance + lifecycle gates; optional `npm run flows:precision -- --organization-id <uuid>` exercises org-scoped flow overrides.
+
 ### Phase 2 — Inference Engine V1
 
 - **Status:** Phase 2 application code is on `main`; production still requires the migration below before reviews/priors persistence matches the running app.

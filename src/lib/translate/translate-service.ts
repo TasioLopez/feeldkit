@@ -4,7 +4,11 @@ import { runInference } from "@/lib/matching/inference/engine";
 import { resolveEnumValuesCanonicalField } from "@/lib/matching/field-reference-resolver";
 import { translateIndustryCode } from "@/lib/industry/concept-service";
 import { buildExplain, emptyExplain, type ExplainV1 } from "@/lib/matching/inference/explain";
-import { classifyWithPolicy, inferDomain } from "@/lib/matching/inference/policy";
+import { getGovernanceRepository } from "@/lib/governance/get-governance-repository";
+import {
+  classifyWithEffectivePolicy,
+  resolveEffectivePolicy,
+} from "@/lib/matching/inference/effective-policy";
 import { makeSignal } from "@/lib/matching/inference/signal";
 import { DEFAULT_WEIGHTS } from "@/lib/matching/inference/weights";
 import { scoreCandidate, type CandidateSignals } from "@/lib/matching/inference/scorer";
@@ -85,8 +89,25 @@ async function buildExplainForFromOnly(args: {
   fromValue: FieldValue | null;
   fromConfidence: number;
 }): Promise<ExplainV1> {
+  const governance = getGovernanceRepository();
+  const effectiveTo = await resolveEffectivePolicy(
+    governance,
+    args.request.organization_id ?? null,
+    args.request.to_field_key,
+  );
+
   if (!args.fromValue) {
-    return emptyExplain(args.request.from_field_key, args.resolvedFromFieldKey);
+    const base = emptyExplain(args.request.from_field_key, args.resolvedFromFieldKey);
+    return {
+      ...base,
+      policy: {
+        domain: effectiveTo.domain,
+        thresholds: effectiveTo.thresholds,
+        reason: classifyWithEffectivePolicy(0, effectiveTo).reason,
+        thresholds_source: effectiveTo.thresholdsSource,
+        lock: effectiveTo.fieldLock?.mode ?? null,
+      },
+    };
   }
   const candidate: CandidateSignals = {
     value: args.fromValue,
@@ -101,16 +122,20 @@ async function buildExplainForFromOnly(args: {
     ],
   };
   const scored = scoreCandidate(candidate);
-  const decision = classifyWithPolicy(scored.finalScore, args.request.to_field_key);
+  const decision = classifyWithEffectivePolicy(scored.finalScore, effectiveTo);
   return buildExplain({
     fieldKey: args.request.to_field_key,
     resolvedFieldKey: args.request.to_field_key,
     decision,
     winner: scored,
     alternates: [],
-    policyDomain: inferDomain(args.request.to_field_key),
+    policyDomain: effectiveTo.domain,
     priorDecisionCount: 0,
     lastDecisionAt: null,
+    policyAugmentation: {
+      thresholds_source: effectiveTo.thresholdsSource,
+      lock: effectiveTo.fieldLock?.mode ?? null,
+    },
   });
 }
 
@@ -226,7 +251,14 @@ export async function translateOne(request: TranslateRequest): Promise<Translate
 
   candidates.sort((a, b) => b.score - a.score);
   const winnerScore = candidates[0]?.score ?? 0;
-  const decision = classifyWithPolicy(winnerScore, toResolved.resolvedKey);
+
+  const governance = getGovernanceRepository();
+  const effectiveTo = await resolveEffectivePolicy(
+    governance,
+    parsed.organization_id ?? null,
+    toResolved.resolvedKey,
+  );
+  const decision = classifyWithEffectivePolicy(winnerScore, effectiveTo);
 
   const explain = candidates.length === 0
     ? await buildExplainForFromOnly({
@@ -285,9 +317,13 @@ export async function translateOne(request: TranslateRequest): Promise<Translate
           signals: [],
           finalScore: cand.score,
         })),
-        policyDomain: inferDomain(toResolved.resolvedKey),
+        policyDomain: effectiveTo.domain,
         priorDecisionCount: 0,
         lastDecisionAt: null,
+        policyAugmentation: {
+          thresholds_source: effectiveTo.thresholdsSource,
+          lock: effectiveTo.fieldLock?.mode ?? null,
+        },
       });
 
   return {

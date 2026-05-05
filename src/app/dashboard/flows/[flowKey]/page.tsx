@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getFlowRepository } from "@/lib/flows/get-flow-repository";
+import { Button } from "@/components/ui/button";
 import { FlowTestForm } from "./flow-test-form";
+import { rollbackFlowFormAction, retireFlowFormAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Flow detail | FeeldKit",
@@ -31,14 +33,48 @@ export default async function DashboardFlowDetailPage({ params }: { params: Prom
         title={flow.name}
         description={flow.description || `${flow.sourceSystem} -> ${flow.targetSystem}`}
         actions={
-          <Link
-            href="/dashboard/flows"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to flows
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href={`/dashboard/flows/${encodeURIComponent(flowKey)}/overrides`}
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Overrides
+            </Link>
+            <Link
+              href="/dashboard/flows"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to flows
+            </Link>
+          </div>
         }
       />
+
+      <Reveal delay={0.02}>
+        <Card variant="panel">
+          <CardHeader>
+            <CardTitle className="text-base">Rollback active version</CardTitle>
+            <CardDescription>Promotes a prior semver to active (service-role). Audit-logged.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-end gap-2">
+            <form action={rollbackFlowFormAction} className="flex flex-wrap items-end gap-2">
+              <input type="hidden" name="flow_key" value={flowKey} />
+              <label className="text-xs text-muted-foreground">
+                Target semver
+                <input
+                  name="target_version"
+                  placeholder="1.0.0"
+                  className="mt-1 block rounded-md border border-input bg-background px-2 py-1 font-mono text-xs"
+                  required
+                />
+              </label>
+              <Button type="submit" size="sm" variant="brand">
+                Roll back
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </Reveal>
 
       <Reveal>
         <Card variant="elevated">
@@ -56,8 +92,10 @@ export default async function DashboardFlowDetailPage({ params }: { params: Prom
                 <TableRow>
                   <TableHead>Version</TableHead>
                   <TableHead>Active</TableHead>
+                  <TableHead>Lifecycle</TableHead>
                   <TableHead>Changelog</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -75,15 +113,29 @@ export default async function DashboardFlowDetailPage({ params }: { params: Prom
                         {version.isActive ? (
                           <Badge variant="success">active</Badge>
                         ) : (
-                          <Badge variant="muted">retired</Badge>
+                          <Badge variant="muted">inactive</Badge>
                         )}
                       </TableCell>
+                      <TableCell className="text-xs font-mono text-muted-foreground">{version.lifecycle}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{version.changelog ?? "—"}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {new Intl.DateTimeFormat(undefined, {
                           dateStyle: "medium",
                           timeStyle: "short",
                         }).format(new Date(version.createdAt))}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {version.lifecycle !== "retired" ? (
+                          <form action={retireFlowFormAction} className="inline">
+                            <input type="hidden" name="flow_key" value={flowKey} />
+                            <input type="hidden" name="version" value={version.version} />
+                            <Button type="submit" size="sm" variant="outline">
+                              Retire
+                            </Button>
+                          </form>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))

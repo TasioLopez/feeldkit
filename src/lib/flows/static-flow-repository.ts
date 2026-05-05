@@ -68,6 +68,9 @@ function buildEntry(definition: FlowPackV1, createdAt: string): StaticEntry {
     definition: definition as unknown as Record<string, unknown>,
     sourceSnapshot: {},
     isActive: true,
+    lifecycle: "published",
+    publishedAt: createdAt,
+    retiredAt: null,
     createdAt,
   };
 
@@ -106,5 +109,10 @@ export class StaticFlowRepository implements IFlowRepository {
 
   async listVersions(flowKey: string): Promise<FlowPackVersion[]> {
     return this.entries.filter((entry) => entry.pack.key === flowKey).map((entry) => entry.version);
+  }
+
+  async getFlowVersionById(versionId: string): Promise<FlowVersionWithMappings | null> {
+    const found = this.entries.find((entry) => entry.version.id === versionId);
+    return found ? { pack: found.pack, version: found.version, mappings: found.mappings } : null;
   }
 }

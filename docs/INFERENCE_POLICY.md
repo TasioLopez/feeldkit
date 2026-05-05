@@ -25,6 +25,12 @@ Defined in [`src/lib/matching/inference/policy.ts`](../src/lib/matching/inferenc
 
 `assertPolicyConsistency()` is run by `verify:pack-health` to ensure `matched > suggested` for every domain.
 
+## Organization overrides (Phase 4)
+
+Rows in `org_policy_overrides` layer **per-domain** `{ matched, suggested }` on top of the coded defaults when `organizationId` is supplied to `normalize` / `translate` / inference callers. Invalid rows (matched ≤ suggested or out of range) are ignored at runtime with `overrideIgnoredReason` surfaced through internal resolution helpers.
+
+Field locks (`org_field_locks`) can force `needs_review` or downgrade `matched → suggested` regardless of score — see [`docs/GOVERNANCE.md`](GOVERNANCE.md) and additive `explain.v1.policy.lock` / `thresholds_source` in [`docs/EXPLAIN_CONTRACT.md`](EXPLAIN_CONTRACT.md).
+
 ## Domain inference
 
 The engine maps a `field_key` to a domain in `inferDomain(fieldKey)` using prefix/keyword rules. When a consumer field declares a `feeldkit.canonical_ref.v1`, the engine resolves to the canonical key first, then applies the domain inference. Examples:

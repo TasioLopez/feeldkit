@@ -130,12 +130,20 @@ function checkAssertions(fields: FlowFieldOutput[], expected: FixtureExpected): 
   return { ok: failures.length === 0, passed, total, failures };
 }
 
-async function runFixture(name: string, fixture: Fixture): Promise<FixtureResult> {
+function parseOrganizationIdFromArgv(): string | undefined {
+  const idx = process.argv.indexOf("--organization-id");
+  if (idx === -1) return undefined;
+  const next = process.argv[idx + 1];
+  return next?.trim() || undefined;
+}
+
+async function runFixture(name: string, fixture: Fixture, organizationId?: string): Promise<FixtureResult> {
   const caseResults: CaseResult[] = [];
   for (const fixtureCase of fixture.cases) {
     const result = await runFlow({
       flow_key: fixture.flow_key,
       source_record: fixtureCase.source_record,
+      ...(organizationId ? { organization_id: organizationId } : {}),
     });
     const checked = checkAssertions(result.fields, fixtureCase.expected);
     caseResults.push({
@@ -159,6 +167,10 @@ async function runFixture(name: string, fixture: Fixture): Promise<FixtureResult
 }
 
 async function main() {
+  const orgFromCli = parseOrganizationIdFromArgv();
+  if (orgFromCli) {
+    console.log(`[INFO] flows:precision organization_id=${orgFromCli}`);
+  }
   const fixtures = await loadFixtures();
   if (fixtures.length === 0) {
     console.log("[WARN] no flow precision fixtures found in tests/fixtures/flows/");
@@ -166,7 +178,7 @@ async function main() {
   }
   const results: FixtureResult[] = [];
   for (const { name, fixture } of fixtures) {
-    const result = await runFixture(name, fixture);
+    const result = await runFixture(name, fixture, orgFromCli);
     const baseline = BASELINES[result.flow_key] ?? DEFAULT_BASELINE;
     const ok = result.pass_rate >= baseline;
     console.log(

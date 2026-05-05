@@ -35,6 +35,9 @@ function mapFlowVersion(row: Record<string, unknown>): FlowPackVersion {
     definition: (row.definition as Record<string, unknown>) ?? {},
     sourceSnapshot: (row.source_snapshot as Record<string, unknown>) ?? {},
     isActive: Boolean(row.is_active ?? true),
+    lifecycle: (row.lifecycle as FlowPackVersion["lifecycle"]) ?? "published",
+    publishedAt: (row.published_at as string | null) ?? null,
+    retiredAt: (row.retired_at as string | null) ?? null,
     createdAt: (row.created_at as string) ?? new Date(0).toISOString(),
   };
 }
@@ -94,7 +97,7 @@ export class SupabaseFlowRepository implements IFlowRepository {
     if (version) {
       query = query.eq("version", version);
     } else {
-      query = query.eq("is_active", true);
+      query = query.eq("is_active", true).eq("lifecycle", "published").is("retired_at", null);
     }
     const { data: versionRow, error: versionError } = await query
       .order("created_at", { ascending: false })
@@ -131,5 +134,39 @@ export class SupabaseFlowRepository implements IFlowRepository {
       return [];
     }
     return data.map((row) => mapFlowVersion(row as Record<string, unknown>));
+  }
+
+  async getFlowVersionById(versionId: string): Promise<FlowVersionWithMappings | null> {
+    const { data: versionRow, error: versionError } = await this.client
+      .from("flow_pack_versions")
+      .select("*")
+      .eq("id", versionId)
+      .maybeSingle();
+    if (versionError || !versionRow) {
+      return null;
+    }
+    const versionEntity = mapFlowVersion(versionRow as Record<string, unknown>);
+    const { data: packRow, error: packError } = await this.client
+      .from("flow_packs")
+      .select("*")
+      .eq("id", versionEntity.flowPackId)
+      .maybeSingle();
+    if (packError || !packRow) {
+      return null;
+    }
+    const pack = mapFlowPack(packRow as Record<string, unknown>);
+    const { data: mappingRows, error: mappingError } = await this.client
+      .from("flow_pack_field_mappings")
+      .select("*")
+      .eq("flow_pack_version_id", versionEntity.id)
+      .order("ordinal", { ascending: true });
+    if (mappingError || !mappingRows) {
+      return { pack, version: versionEntity, mappings: [] };
+    }
+    return {
+      pack,
+      version: versionEntity,
+      mappings: mappingRows.map((row) => mapFlowFieldMapping(row as Record<string, unknown>)),
+    };
   }
 }

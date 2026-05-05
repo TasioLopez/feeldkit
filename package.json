@@ -19,6 +19,7 @@
     "inference:precision": "node --import tsx ./scripts/inference-precision.ts",
     "flows:ingest": "node --import tsx ./scripts/ingest-flows.ts",
     "flows:precision": "node --import tsx ./scripts/flows-precision.ts",
+    "flows:rollback": "node --import tsx ./scripts/flows-rollback.ts",
     "process:enrichment-jobs": "node --import tsx ./scripts/process-enrichment-jobs.ts",
     "export:pack": "node --import tsx ./scripts/export-pack.ts"
   },
