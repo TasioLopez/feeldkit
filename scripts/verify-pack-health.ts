@@ -325,6 +325,13 @@ async function run() {
     "flow_pack_overrides",
     "promoted_decisions",
   ] as const;
+  const promotionTables = [
+    "org_field_aliases",
+    "org_field_values",
+    "org_field_crosswalks",
+    "org_promotion_settings",
+    "promotion_proposals",
+  ] as const;
   let governanceTablesOk = true;
   for (const table of governanceTables) {
     const { error: govErr } = await admin.from(table).select("id", { head: true });
@@ -383,12 +390,20 @@ async function run() {
   if (!policyOverridesConsistent) failed = true;
 
   const { data: promotedRows, error: prErr } = await admin.from("promoted_decisions").select("id, target_table, target_id").limit(500);
+  const KNOWN_PROMOTED_TARGETS = new Set([
+    "field_aliases",
+    "field_crosswalks",
+    "field_values",
+    "org_field_aliases",
+    "org_field_crosswalks",
+    "org_field_values",
+  ]);
   let promotedLinksOk = !prErr;
   if (!prErr && promotedRows) {
     for (const row of promotedRows) {
       const table = row.target_table as string;
       const tid = row.target_id as string;
-      if (table !== "field_aliases" && table !== "field_crosswalks" && table !== "field_values") {
+      if (!KNOWN_PROMOTED_TARGETS.has(table)) {
         promotedLinksOk = false;
         console.log(`  [LOW] promoted_decisions_unknown_target_table id=${row.id} table=${table}`);
         continue;
@@ -459,6 +474,117 @@ async function run() {
   }
   console.log(`${foResolvableOk ? "[OK]" : "[LOW]"} flow_overrides_resolvable`);
   if (!foResolvableOk) failed = true;
+
+  // Phase 5 Wave 1 — promotion engine gates
+  let promotionTablesOk = true;
+  for (const table of promotionTables) {
+    const { error: pErr } = await admin.from(table).select("*", { head: true });
+    const ok = !pErr;
+    console.log(`${ok ? "[OK]" : "[LOW]"} promotion_tables_present table=${table}`);
+    if (!ok) {
+      promotionTablesOk = false;
+      console.log(`  [LOW] ${pErr?.message ?? "unknown error"}`);
+    }
+  }
+  if (!promotionTablesOk) failed = true;
+
+  const { data: proposalRows, error: ppErr } = await admin
+    .from("promotion_proposals")
+    .select("id, status, audit_log_id, organization_id, target_table");
+  let proposalsConsistent = !ppErr;
+  if (!ppErr && proposalRows) {
+    const VALID_TARGETS = new Set(["field_aliases", "field_values", "field_crosswalks"]);
+    const VALID_STATUS = new Set([
+      "approved_org",
+      "pending_global",
+      "approved_global",
+      "rejected",
+      "superseded",
+    ]);
+    for (const row of proposalRows) {
+      const status = row.status as string;
+      const target = row.target_table as string;
+      if (!VALID_STATUS.has(status)) {
+        proposalsConsistent = false;
+        console.log(`  [LOW] promotion_proposals_invalid_status id=${row.id} status=${status}`);
+      }
+      if (!VALID_TARGETS.has(target)) {
+        proposalsConsistent = false;
+        console.log(`  [LOW] promotion_proposals_invalid_target id=${row.id} target=${target}`);
+      }
+      if (status === "approved_global" && !row.audit_log_id) {
+        proposalsConsistent = false;
+        console.log(`  [LOW] promotion_proposals_missing_audit id=${row.id}`);
+      }
+    }
+  }
+  console.log(`${proposalsConsistent ? "[OK]" : "[LOW]"} promotion_proposals_consistent`);
+  if (!proposalsConsistent) failed = true;
+
+  // Phase 5 Wave 3 — promoted intelligence registry gates
+  const registryTables = ["promoted_intelligence_versions", "promoted_intelligence_entries"] as const;
+  let registryTablesOk = true;
+  for (const table of registryTables) {
+    const { error: regErr } = await admin.from(table).select("*", { head: true });
+    const ok = !regErr;
+    console.log(`${ok ? "[OK]" : "[LOW]"} promoted_intelligence_tables_present table=${table}`);
+    if (!ok) {
+      registryTablesOk = false;
+      console.log(`  [LOW] ${regErr?.message ?? "unknown error"}`);
+    }
+  }
+  if (!registryTablesOk) failed = true;
+
+  const { count: versionCount } = await admin
+    .from("promoted_intelligence_versions")
+    .select("id", { head: true, count: "exact" });
+  const versionsPresent = (versionCount ?? 0) > 0;
+  if (versionsPresent) {
+    console.log(`[OK] promoted_intelligence_versions_present count=${versionCount ?? 0}`);
+  } else {
+    console.log(
+      `[WARN] promoted_intelligence_versions_absent count=0 — run npm run promote:rollup after Wave 3 migration + promotions`,
+    );
+  }
+
+  const { data: entryRows, error: entErr } = await admin
+    .from("promoted_intelligence_entries")
+    .select("id, version_id, target_table, target_id, promoted_decision_id")
+    .limit(500);
+  let entriesConsistent = !entErr;
+  if (!entErr && entryRows) {
+    const KNOWN_TARGETS = new Set([
+      "field_aliases",
+      "field_crosswalks",
+      "field_values",
+      "org_field_aliases",
+      "org_field_crosswalks",
+      "org_field_values",
+    ]);
+    for (const row of entryRows) {
+      const table = row.target_table as string;
+      const tid = row.target_id as string;
+      const vid = row.version_id as string;
+      if (!vid) {
+        entriesConsistent = false;
+        console.log(`  [LOW] promoted_intelligence_entry_missing_version id=${row.id}`);
+        continue;
+      }
+      if (!KNOWN_TARGETS.has(table)) {
+        entriesConsistent = false;
+        console.log(`  [LOW] promoted_intelligence_entry_unknown_target id=${row.id} table=${table}`);
+        continue;
+      }
+      const { data: exists } = await admin.from(table).select("id").eq("id", tid).maybeSingle();
+      if (!exists?.id) {
+        entriesConsistent = false;
+        console.log(`  [LOW] promoted_intelligence_entry_broken_target id=${row.id} table=${table}`);
+      }
+    }
+  }
+  console.log(`${entriesConsistent ? "[OK]" : "[LOW]"} promoted_intelligence_entries_consistent`);
+  if (entErr) entriesConsistent = false;
+  if (!entriesConsistent) failed = true;
 
   if (!report) {
     console.log("[WARN] import report not found; skipping consistency checks against .generated/full-v1-import-report.json");

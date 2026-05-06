@@ -1,5 +1,18 @@
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
 import { normalizeText } from "@/lib/matching/normalize-text";
+import { promoteReviewApproval } from "@/lib/promotion/review-flow";
+import { revertPromotion } from "@/lib/promotion/engine";
+import type { PromotionResolvedTargetTable } from "@/lib/promotion/types";
+import { writeAudit } from "@/lib/governance/audit";
+
+const RESOLVED_TARGETS: ReadonlySet<PromotionResolvedTargetTable> = new Set([
+  "field_aliases",
+  "field_values",
+  "field_crosswalks",
+  "org_field_aliases",
+  "org_field_values",
+  "org_field_crosswalks",
+]);
 
 export type EnrichmentProposal = {
   id: string;
@@ -170,44 +183,45 @@ export async function decideEnrichmentProposal(args: {
     if (!approvedKey || !approvedLabel) {
       return { ok: false, error: "Approved key/label cannot be empty." };
     }
-    const { data: valueRow, error: valueErr } = await admin
-      .from("field_values")
-      .upsert(
-        {
-          field_type_id: proposal.field_type_id,
-          key: approvedKey,
-          label: approvedLabel,
-          normalized_label: normalizeText(approvedLabel),
-          locale: null,
-          description: null,
-          parent_id: null,
-          sort_order: 0,
-          status: "active",
-          metadata: { source: "ai_proposal", proposal_id: args.proposalId },
-          source: "ai_proposal",
-          source_id: args.proposalId,
-        },
-        { onConflict: "field_type_id,key" },
-      )
-      .select("id")
-      .single();
-    if (valueErr || !valueRow) {
-      return { ok: false, error: valueErr?.message ?? "Unable to create canonical value." };
+
+    const valuePromotion = await promoteReviewApproval({
+      admin,
+      sourceKind: "enrichment_proposal",
+      sourceId: args.proposalId,
+      organizationId: args.organizationId,
+      actorId: args.actorId,
+      payload: {
+        target: "field_values",
+        fieldTypeId: proposal.field_type_id as string,
+        key: approvedKey,
+        label: approvedLabel,
+        normalizedLabel: normalizeText(approvedLabel),
+        source: "ai_proposal",
+        metadata: { source: "ai_proposal", proposal_id: args.proposalId },
+      },
+    });
+    if (!valuePromotion.ok || !valuePromotion.apply?.targetId) {
+      return { ok: false, error: valuePromotion.error ?? "Unable to create canonical value." };
     }
 
-    await admin.from("field_aliases").upsert(
-      {
-        field_value_id: valueRow.id,
-        field_type_id: proposal.field_type_id,
-        alias: proposal.source_input,
-        normalized_alias: normalizeText(proposal.source_input),
-        locale: null,
+    await promoteReviewApproval({
+      admin,
+      sourceKind: "enrichment_proposal",
+      sourceId: args.proposalId,
+      organizationId: args.organizationId,
+      actorId: args.actorId,
+      // Alias must follow the same scope decision as the value itself.
+      scopeOverride: valuePromotion.scope,
+      payload: {
+        target: "field_aliases",
+        fieldTypeId: proposal.field_type_id as string,
+        fieldValueId: valuePromotion.apply.targetId,
+        alias: proposal.source_input as string,
+        normalizedAlias: normalizeText(proposal.source_input as string),
         source: "ai_proposal",
         confidence: 0.9,
-        status: "active",
       },
-      { onConflict: "field_type_id,normalized_alias" },
-    );
+    });
   }
 
   const { error: updateErr } = await admin
@@ -227,6 +241,76 @@ export async function decideEnrichmentProposal(args: {
   if (updateErr) {
     return { ok: false, error: updateErr.message };
   }
+
+  return { ok: true };
+}
+
+/**
+ * Reverse an approved AI enrichment proposal: revert ALL non-reverted
+ * `promoted_decisions` rows tied to this proposal (the value-level row + the
+ * alias-level row), flip the proposal status back to `pending`, and write a
+ * single `enrichment_proposal.undo` audit row.
+ */
+export async function undoPromotedProposalDecision(args: {
+  proposalId: string;
+  organizationId: string;
+  actorId: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const admin = getSupabaseServiceClient();
+  if (!admin) return { ok: false, error: "Server configuration error." };
+
+  const { data: rows, error: fetchErr } = await admin
+    .from("promoted_decisions")
+    .select("id, target_table, target_id, snapshot_before, organization_id, reverted_at, created_at")
+    .eq("source_kind", "enrichment_proposal")
+    .eq("source_id", args.proposalId)
+    .eq("organization_id", args.organizationId)
+    .is("reverted_at", null)
+    .order("created_at", { ascending: false });
+
+  if (fetchErr) return { ok: false, error: fetchErr.message };
+  if (!rows || rows.length === 0) {
+    return { ok: false, error: "No revertible promotion found for this proposal." };
+  }
+
+  for (const row of rows) {
+    const targetTable = row.target_table as PromotionResolvedTargetTable;
+    if (!RESOLVED_TARGETS.has(targetTable)) {
+      return { ok: false, error: `Unsupported promotion target: ${targetTable}` };
+    }
+    const revert = await revertPromotion({
+      admin,
+      resolvedTable: targetTable,
+      targetId: row.target_id as string,
+      snapshotBefore: row.snapshot_before as unknown,
+    });
+    if (!revert.ok) {
+      return { ok: false, error: revert.error };
+    }
+  }
+
+  const undoAuditId = await writeAudit({
+    organizationId: args.organizationId,
+    actorId: args.actorId,
+    action: "enrichment_proposal.undo",
+    entityType: "enrichment_proposals",
+    entityId: args.proposalId,
+    before: { promotion_ids: rows.map((r) => r.id) },
+    after: { restored_count: rows.length },
+  });
+
+  for (const row of rows) {
+    await admin
+      .from("promoted_decisions")
+      .update({ reverted_at: new Date().toISOString(), reverted_by: args.actorId })
+      .eq("id", row.id as string);
+  }
+
+  await admin
+    .from("enrichment_proposals")
+    .update({ status: "pending", reviewed_by: null, reviewed_at: null, payload: { undo_audit_id: undoAuditId } })
+    .eq("id", args.proposalId)
+    .eq("organization_id", args.organizationId);
 
   return { ok: true };
 }

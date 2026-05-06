@@ -28,10 +28,17 @@
 - Audit log + promoted-decision undo + admin APIs (`admin:policies`, `admin:flows`).
 - Exit criteria: governance surfaces exercised in staging/prod; review undo round-trip verified.
 
-## Phase 5: Learning Loop
+## Phase 5: Learning Loop *(engineering closed — deploy + smoke per environment)*
 - Promote approved decisions into reusable aliases/crosswalk assets.
-- Version and monitor promoted intelligence.
-- Exit criteria: measurable drop in repeated manual decisions.
+- **Wave 1:** promotion engine (`src/lib/promotion/*`), org staging tables, `org_promotion_settings`,
+  `promotion_proposals`, `npm run promotion:metrics`, verify gates.
+- **Wave 2:** curator APIs (`admin:promotions`), `platform_admin` dashboard queue, AI proposal undo,
+  governance `promotion-settings` API + dashboard form, enrichment wired through `promoteReviewApproval`.
+- **Wave 3:** `promoted_intelligence_versions` / `_entries`, `npm run promote:rollup`, public
+  `GET /api/v1/promoted-intelligence/versions*`, `/dashboard/promotions` + registry, review impact tiles.
+- **Operator checklist:** migrations `20260507000000_phase5_promotion_engine.sql` + `20260507100000_phase5_wave3_promoted_intelligence.sql`,
+  then `npm run promote:rollup` once promotions exist — see [`docs/PROMOTION.md`](PROMOTION.md).
+- Exit criteria (product): measurable drop in repeated manual decisions (track via `promotion:metrics`).
 
 ## Phase 6: Developer Productization
 - SDK/client helpers, examples, and integration playbooks.

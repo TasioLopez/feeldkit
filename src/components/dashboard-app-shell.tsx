@@ -18,6 +18,7 @@ import {
   ScrollText,
   Shield,
   Sparkles,
+  Layers,
   Workflow,
   X,
 } from "lucide-react";
@@ -40,6 +41,7 @@ const dataNav: NavItem[] = [
 
 const opsNav: NavItem[] = [
   { href: "/dashboard/reviews", label: "Reviews", icon: ListTodo },
+  { href: "/dashboard/promotions", label: "Promotions", icon: Layers },
   { href: "/dashboard/governance", label: "Governance", icon: Shield },
   { href: "/dashboard/audit", label: "Audit", icon: ScrollText },
   { href: "/dashboard/enrichment", label: "AI Enricher", icon: Sparkles },

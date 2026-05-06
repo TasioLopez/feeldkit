@@ -6,6 +6,7 @@ import { writeAudit } from "@/lib/governance/audit";
 import { isDomainKey } from "@/lib/governance/types";
 import { orgPolicyOverrideRowConsistent } from "@/lib/governance/policy-override-check";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
+import { upsertOrgPromotionSettings } from "@/lib/promotion/repository";
 
 export async function upsertOrgPolicyOverrideAction(formData: FormData): Promise<void> {
   const actor = await getAdminActorContext();
@@ -83,5 +84,40 @@ export async function upsertOrgFieldLockAction(formData: FormData): Promise<void
     },
     { onConflict: "organization_id,field_key" },
   );
+  revalidatePath("/dashboard/governance");
+}
+
+export async function upsertOrgPromotionSettingsAction(formData: FormData): Promise<void> {
+  const actor = await getAdminActorContext();
+  if (!actor) return;
+  try {
+    assertAdminRole(actor.role, "edit promotion settings");
+  } catch {
+    return;
+  }
+  const defaultScopeRaw = String(formData.get("default_scope") ?? "").trim();
+  const optOut = String(formData.get("opt_out_global_propose") ?? "") === "on";
+  const notes = String(formData.get("promotion_notes") ?? "").trim() || null;
+  if (defaultScopeRaw !== "org" && defaultScopeRaw !== "global") return;
+
+  const admin = getSupabaseServiceClient();
+  if (!admin) return;
+
+  await writeAudit({
+    organizationId: actor.organizationId,
+    actorId: actor.userId,
+    action: "promotion_settings.update",
+    entityType: "org_promotion_settings",
+    entityId: null,
+    after: { default_scope: defaultScopeRaw, opt_out_global_propose: optOut, notes },
+  });
+
+  await upsertOrgPromotionSettings(admin, {
+    organizationId: actor.organizationId,
+    optOutGlobalPropose: optOut,
+    defaultScope: defaultScopeRaw,
+    notes,
+    actorId: actor.userId,
+  });
   revalidatePath("/dashboard/governance");
 }

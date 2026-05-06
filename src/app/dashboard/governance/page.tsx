@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Reveal } from "@/components/motion/reveal";
 import { DOMAIN_POLICIES } from "@/lib/matching/inference/policy";
 import { getGovernanceRepository } from "@/lib/governance/get-governance-repository";
-import { upsertOrgFieldLockAction, upsertOrgPolicyOverrideAction } from "./actions";
+import { getOrgPromotionSettings } from "@/lib/promotion/repository";
+import { getSupabaseServiceClient } from "@/lib/supabase/server";
+import { upsertOrgFieldLockAction, upsertOrgPolicyOverrideAction, upsertOrgPromotionSettingsAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Governance | FeeldKit",
@@ -21,10 +23,13 @@ export const metadata: Metadata = {
 export default async function GovernanceDashboardPage() {
   const actor = await getAdminActorContext();
   const governance = getGovernanceRepository();
+  const admin = getSupabaseServiceClient();
 
   const overrides = actor?.organizationId ? await governance.listOrgPolicyOverrides(actor.organizationId) : [];
   const fieldLocks = actor?.organizationId ? await governance.listOrgFieldLocks(actor.organizationId) : [];
   const flowOverrides = actor?.organizationId ? await governance.listFlowPackOverrides(actor.organizationId) : [];
+  const promotionSettings =
+    actor?.organizationId && admin ? await getOrgPromotionSettings(admin, actor.organizationId) : null;
 
   return (
     <div className="space-y-6">
@@ -220,6 +225,66 @@ export default async function GovernanceDashboardPage() {
                     </Button>
                   </div>
                 </form>
+              </div>
+            </Card>
+          </Reveal>
+
+          <Reveal delay={0.26}>
+            <Card variant="elevated">
+              <CardHeader>
+                <CardTitle className="text-base">Learning & promotion (Phase 5)</CardTitle>
+                <CardDescription>
+                  Controls <code className="font-mono text-[11px]">org_promotion_settings</code>. Default scope{" "}
+                  <code className="font-mono text-[11px]">org</code> keeps approvals in org staging;{" "}
+                  <code className="font-mono text-[11px]">global</code> writes the canonical pack directly (trusted orgs).
+                </CardDescription>
+              </CardHeader>
+              <div className="border-t border-stroke-soft px-6 py-4">
+                {promotionSettings ? (
+                  <form action={upsertOrgPromotionSettingsAction} className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="default_scope">default_scope</Label>
+                      <select
+                        id="default_scope"
+                        name="default_scope"
+                        defaultValue={promotionSettings.defaultScope}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        required
+                      >
+                        <option value="org">org (staging + optional curator queue)</option>
+                        <option value="global">global (direct canonical writes)</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-2 pt-6">
+                      <input
+                        id="opt_out_global_propose"
+                        name="opt_out_global_propose"
+                        type="checkbox"
+                        defaultChecked={promotionSettings.optOutGlobalPropose}
+                        className="size-4 rounded border border-input"
+                      />
+                      <Label htmlFor="opt_out_global_propose" className="text-sm font-normal">
+                        Opt out of global promotion proposals (never queue <code className="font-mono text-[11px]">pending_global</code>)
+                      </Label>
+                    </div>
+                    <div className="space-y-1 md:col-span-2">
+                      <Label htmlFor="promotion_notes">Notes</Label>
+                      <Input
+                        id="promotion_notes"
+                        name="promotion_notes"
+                        placeholder="optional"
+                        defaultValue={promotionSettings.notes ?? ""}
+                      />
+                    </div>
+                    <div>
+                      <Button type="submit" variant="brand" size="sm">
+                        Save promotion settings
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Sign in with an organization to edit promotion settings.</p>
+                )}
               </div>
             </Card>
           </Reveal>

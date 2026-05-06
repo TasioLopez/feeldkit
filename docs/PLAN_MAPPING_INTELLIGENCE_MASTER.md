@@ -14,6 +14,11 @@ field mapping work while preserving explainability and governance.
 - **Phase 3 closed (engineering):** Flow Packs V1 (Deterministic Baseline) is implemented on `main` — `flow_packs` / `flow_pack_versions` / `flow_pack_field_mappings` schema, `feeldkit.flow_pack.v1` JSON contract, flagship `linkedin_salesnav -> hubspot` definition under `src/data/flows/`, `runFlow` deterministic engine, `npm run flows:ingest` ingest, `read:flows` API scope, public `/api/v1/flow/*` and `/api/v1/flows*` routes, dashboard at `/dashboard/flows`, fixtures + `flows:precision` report, and `verify:pack-health` flow gates. See [FLOW_PACK_SPEC.md](FLOW_PACK_SPEC.md).
 - **Product tuning (ongoing, not blocking Phase 4 planning):** raise inference precision baselines, raise the flagship flow's deterministic baseline as HubSpot value-list crosswalks land, and grow the flow-pack catalog (HubSpot -> SalesNav inverse, Apollo, Clearbit, etc.).
 - **Phase 4 closed (engineering):** governance schema (`org_policy_*`, `flow_pack_overrides`, `promoted_decisions`), audit helper + review undo, effective policy resolution wired through `runInference`/`translateOne`, flow overrides + `trace.applied_overrides`, flow lifecycle columns + retire/rollback (`npm run flows:rollback`), admin APIs & dashboard surfaces — see [`docs/GOVERNANCE.md`](GOVERNANCE.md).
+- **Phase 5 (engineering closed):** full learning & promotion loop — engine + org/global scopes, curator queue
+  (`admin:promotions`, `platform_admin`), AI enrichment via same promotion path + undo, semver registry
+  (`promote:rollup`), public promoted-intelligence read API, dashboard surfaces (`/dashboard/promotions`,
+  governance promotion toggles, review impact metrics). See [`docs/PROMOTION.md`](PROMOTION.md). Per-environment:
+  apply migrations, deploy app, run smoke + `promote:rollup` when ready.
 
 ## Pre–Phase 4 checklist (short)
 

@@ -20,6 +20,8 @@
     "flows:ingest": "node --import tsx ./scripts/ingest-flows.ts",
     "flows:precision": "node --import tsx ./scripts/flows-precision.ts",
     "flows:rollback": "node --import tsx ./scripts/flows-rollback.ts",
+    "promotion:metrics": "node --import tsx ./scripts/promotion-metrics.ts",
+    "promote:rollup": "node --import tsx ./scripts/promote-rollup.ts",
     "process:enrichment-jobs": "node --import tsx ./scripts/process-enrichment-jobs.ts",
     "export:pack": "node --import tsx ./scripts/export-pack.ts"
   },

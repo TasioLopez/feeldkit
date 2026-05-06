@@ -1,5 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { writeAudit } from "@/lib/governance/audit";
+import { revertPromotion } from "@/lib/promotion/engine";
+import type { PromotionResolvedTargetTable } from "@/lib/promotion/types";
+
+const RESOLVED_TARGETS: ReadonlySet<PromotionResolvedTargetTable> = new Set([
+  "field_aliases",
+  "field_values",
+  "field_crosswalks",
+  "org_field_aliases",
+  "org_field_values",
+  "org_field_crosswalks",
+]);
 
 /** Marker stored in `promoted_decisions.snapshot_before` when no alias row existed pre-approval. */
 export const PROMOTED_ALIAS_ABSENT = { absent: true as const };
@@ -17,10 +28,6 @@ export type FieldAliasRowSnapshot = {
   created_at: string;
   updated_at: string;
 };
-
-function isAbsentSnapshot(value: unknown): value is { absent: true } {
-  return Boolean(value && typeof value === "object" && (value as { absent?: unknown }).absent === true);
-}
 
 export async function fetchAliasRowForReview(
   admin: SupabaseClient,
@@ -131,39 +138,22 @@ export async function undoPromotedReviewDecision(args: UndoPromotedReviewArgs): 
     return { ok: false, error: "No revertible promotion found for this review." };
   }
 
-  if ((promo.target_table as string) !== "field_aliases") {
+  const targetTable = promo.target_table as PromotionResolvedTargetTable;
+  if (!RESOLVED_TARGETS.has(targetTable)) {
     return { ok: false, error: "Unsupported promotion target." };
   }
 
   const targetId = promo.target_id as string;
   const snapshotBefore = promo.snapshot_before as unknown;
 
-  if (isAbsentSnapshot(snapshotBefore)) {
-    const { error: delErr } = await admin.from("field_aliases").delete().eq("id", targetId);
-    if (delErr) {
-      return { ok: false, error: delErr.message };
-    }
-  } else if (snapshotBefore && typeof snapshotBefore === "object") {
-    const snap = snapshotBefore as Record<string, unknown>;
-    const { error: updErr } = await admin
-      .from("field_aliases")
-      .update({
-        field_value_id: snap.field_value_id,
-        field_type_id: snap.field_type_id,
-        alias: snap.alias,
-        normalized_alias: snap.normalized_alias,
-        locale: snap.locale ?? null,
-        source: snap.source ?? null,
-        confidence: snap.confidence ?? 0.9,
-        status: snap.status ?? "active",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", targetId);
-    if (updErr) {
-      return { ok: false, error: updErr.message };
-    }
-  } else {
-    return { ok: false, error: "Invalid promotion snapshot." };
+  const revert = await revertPromotion({
+    admin,
+    resolvedTable: targetTable,
+    targetId,
+    snapshotBefore,
+  });
+  if (!revert.ok) {
+    return { ok: false, error: revert.error };
   }
 
   const undoAuditId = await writeAudit({

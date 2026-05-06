@@ -46,7 +46,22 @@ export async function getAdminActorContext(): Promise<AdminActorContext | null> 
 }
 
 export function assertAdminRole(role: string, action = "perform this action"): void {
-  if (!["owner", "admin"].includes(role)) {
+  if (!["owner", "admin", "platform_admin"].includes(role)) {
+    throw new Error(`Insufficient permissions to ${action}.`);
+  }
+}
+
+/**
+ * Cross-org curation (Phase 5 Wave 2). Used to gate curator queue endpoints
+ * such as `POST /api/v1/admin/promotions/{id}/approve` so org-level admins
+ * cannot promote another org's proposals to the global seed.
+ */
+export function isPlatformAdmin(role: string): boolean {
+  return role === "platform_admin";
+}
+
+export function assertPlatformAdminRole(role: string, action = "curate global promotions"): void {
+  if (!isPlatformAdmin(role)) {
     throw new Error(`Insufficient permissions to ${action}.`);
   }
 }

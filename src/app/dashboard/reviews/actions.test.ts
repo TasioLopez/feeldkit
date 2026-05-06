@@ -19,10 +19,17 @@ vi.mock("@/lib/governance/audit", () => ({
 }));
 
 vi.mock("@/lib/reviews/review-promotion", () => ({
-  fetchAliasRowForReview: vi.fn(async () => null),
-  PROMOTED_ALIAS_ABSENT: { absent: true },
-  recordReviewAliasPromotion: vi.fn(async () => {}),
   undoPromotedReviewDecision: vi.fn(async () => ({ ok: true })),
+}));
+
+vi.mock("@/lib/promotion/review-flow", () => ({
+  promoteReviewApproval: vi.fn(async () => ({
+    ok: true,
+    scope: "org",
+    auditLogId: null,
+    proposalId: null,
+    pendingGlobal: false,
+  })),
 }));
 
 vi.mock("@/lib/reviews/review-service", () => ({
@@ -35,21 +42,21 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 import { approveReviewAction, rejectReviewAction } from "@/app/dashboard/reviews/actions";
-import { recordReviewAliasPromotion } from "@/lib/reviews/review-promotion";
+import { promoteReviewApproval } from "@/lib/promotion/review-flow";
 import { setReviewDecision } from "@/lib/reviews/review-service";
 import { writeAudit } from "@/lib/governance/audit";
 
 describe("dashboard/reviews/actions", () => {
   beforeEach(() => {
-    vi.mocked(recordReviewAliasPromotion).mockClear();
+    vi.mocked(promoteReviewApproval).mockClear();
     vi.mocked(writeAudit).mockClear();
     vi.mocked(setReviewDecision).mockClear();
     serviceClient = null;
   });
 
-  it("approve skips promotion path when service role client is missing", async () => {
+  it("approve returns before review decision when service role client is missing", async () => {
     await approveReviewAction("rev-1", null);
-    expect(recordReviewAliasPromotion).not.toHaveBeenCalled();
+    expect(promoteReviewApproval).not.toHaveBeenCalled();
     expect(setReviewDecision).not.toHaveBeenCalled();
   });
 

@@ -18,9 +18,10 @@ FeeldKit governance captures **per-organization confidence policy**, **field loc
 
 | Scope | Capability |
 | ----- | ---------- |
-| `admin:policies` | Read/write governance rows (`policy`, `field-locks`, `flow-overrides` GET/PUT/DELETE where implemented). |
+| `admin:policies` | Read/write governance rows (`policy`, `field-locks`, `flow-overrides` GET, `promotion-settings` GET/PUT). |
 | `admin:flows` | Flow override inserts (`PUT flow-overrides`), lifecycle endpoints (`POST flows/{key}/rollback`, `POST flows/{key}/versions/{semver}/retire`). |
-| `admin:reviews` | Review undo (`POST admin/reviews/{id}/undo`) & audit reads (`GET admin/audit`). |
+| `admin:reviews` | Review undo (`POST admin/reviews/{id}/undo`), AI-proposal undo (`POST admin/proposals/{id}/undo`), audit reads (`GET admin/audit`). |
+| `admin:promotions` | Curator queue (`GET admin/promotions`), curator decisions (`POST admin/promotions/{id}/approve\|reject`). |
 
 Dashboard defaults gate privileged scopes to organization **owners**.
 
@@ -63,3 +64,15 @@ See `docs/EXPLAIN_CONTRACT.md`.
 1. Apply migrations `20260506000000_phase4_governance.sql` and `20260506100000_phase4_wave2_flow_lifecycle.sql`.
 2. `npm run flows:ingest` after Wave 2 migration (fills lifecycle columns).
 3. `npm run verify:pack-health` (includes governance + lifecycle gates).
+
+## Phase 5 cross-reference
+
+Promotion of approved reviews / AI proposals into reusable mapping intelligence
+is documented separately in [`docs/PROMOTION.md`](PROMOTION.md). Governance
+toggles relevant to promotion live on `org_promotion_settings`:
+
+- `default_scope`: `'org'` (default — landed in `org_field_*` for an admin
+  curator to approve into the global seed) or `'global'` (the org is trusted
+  enough to write the canonical pack directly).
+- `opt_out_global_propose`: when `true`, FeeldKit will never queue a
+  `pending_global` proposal for that org.

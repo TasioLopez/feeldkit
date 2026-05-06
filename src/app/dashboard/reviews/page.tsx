@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { getAdminActorContext } from "@/lib/auth/admin-context";
 import { listReviewQueue } from "@/lib/matching/review-queue";
 import { listPendingEnrichmentProposals } from "@/lib/enrichment/proposal-service";
@@ -23,6 +25,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { getSupabaseServiceClient } from "@/lib/supabase/server";
+import { fetchReviewPromotionImpacts } from "@/lib/promotion/review-impact";
 
 export const metadata: Metadata = {
   title: "Review queue | FeeldKit",
@@ -77,6 +81,7 @@ export default async function DashboardReviewsPage({
   const statusFilter = (params.status ?? "all").toLowerCase();
   const domainFilter = (params.domain ?? "all").toLowerCase();
   const actor = await getAdminActorContext();
+  const admin = getSupabaseServiceClient();
   const reviewsRaw = await listReviewQueue(actor?.organizationId);
   const proposalsRaw = actor?.organizationId ? await listPendingEnrichmentProposals(actor.organizationId) : [];
   const reviews = reviewsRaw.filter((item) => {
@@ -96,12 +101,77 @@ export default async function DashboardReviewsPage({
   });
   const proposalIdsCsv = proposals.map((item) => item.id).join(",");
   const pendingReviewIdsCsv = reviews.filter((r) => r.status === "pending").map((r) => r.id).join(",");
+
+  const approvedReviewIds = reviews.filter((r) => r.status === "approved").map((r) => r.id);
+  const promotionImpact =
+    admin && actor?.organizationId && approvedReviewIds.length > 0
+      ? await fetchReviewPromotionImpacts(admin, actor.organizationId, approvedReviewIds)
+      : new Map();
+
+  type MetricsReport = {
+    generated_at?: string;
+    proposals_total?: number;
+    revert_rate_30d?: number;
+    repeated_review_inputs_30d?: number;
+  };
+  let promotionMetrics: MetricsReport | null = null;
+  let metricsStaleNote: string | null = null;
+  try {
+    const raw = await readFile(resolve(process.cwd(), ".generated", "promotion-metrics-report.json"), "utf8");
+    promotionMetrics = JSON.parse(raw) as MetricsReport;
+  } catch {
+    promotionMetrics = null;
+    metricsStaleNote = "Run npm run promotion:metrics to generate .generated/promotion-metrics-report.json.";
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Review queue"
         description="Low confidence and unmatched mappings are listed here for triage."
       />
+      {actor?.organizationId ? (
+        <Reveal>
+          <Card variant="panel">
+            <CardHeader>
+              <CardTitle className="text-base">Promotion impact (Phase 5)</CardTitle>
+              <CardDescription>
+                Sourced from <code className="font-mono text-[11px]">promotion-metrics-report.json</code>
+                {metricsStaleNote ? ` — ${metricsStaleNote}` : null}
+              </CardDescription>
+            </CardHeader>
+            <div className="border-t border-stroke-soft px-6 py-4">
+              {promotionMetrics ? (
+                <div className="grid gap-3 sm:grid-cols-3 text-sm">
+                  <div className="rounded-lg border border-stroke-soft bg-surface-panel p-3">
+                    <p className="text-xs text-muted-foreground">proposals_total</p>
+                    <p className="text-lg font-semibold tabular-nums">{promotionMetrics.proposals_total ?? "—"}</p>
+                  </div>
+                  <div className="rounded-lg border border-stroke-soft bg-surface-panel p-3">
+                    <p className="text-xs text-muted-foreground">revert_rate_30d</p>
+                    <p className="text-lg font-semibold tabular-nums">
+                      {typeof promotionMetrics.revert_rate_30d === "number"
+                        ? promotionMetrics.revert_rate_30d.toFixed(3)
+                        : "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-stroke-soft bg-surface-panel p-3">
+                    <p className="text-xs text-muted-foreground">repeated_review_inputs_30d</p>
+                    <p className="text-lg font-semibold tabular-nums">
+                      {promotionMetrics.repeated_review_inputs_30d ?? "—"}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">{metricsStaleNote ?? "No metrics file yet."}</p>
+              )}
+              <p className="mt-3 text-xs text-muted-foreground">
+                Per-review badges below show proposal lifecycle + registry inclusion after rollup.
+              </p>
+            </div>
+          </Card>
+        </Reveal>
+      ) : null}
       <Reveal>
         <DataToolbar
         placeholder="Filter by field, input, key, or label"
@@ -192,6 +262,18 @@ export default async function DashboardReviewsPage({
                       ) : null}
                       {item.status !== "pending" ? (
                         <Badge variant="muted">decided in {formatDecisionLatencyMs(item.reviewedAt, item.createdAt)}</Badge>
+                      ) : null}
+                      {item.status === "approved" && promotionImpact.has(item.id) ? (
+                        <>
+                          {Array.from(new Set(promotionImpact.get(item.id)!.proposalStatuses)).map((s) => (
+                            <Badge key={String(s)} variant="outline">
+                              promo {String(s)}
+                            </Badge>
+                          ))}
+                          {promotionImpact.get(item.id)!.inRegistry ? (
+                            <Badge variant="success">registry</Badge>
+                          ) : null}
+                        </>
                       ) : null}
                     </div>
                   </div>

@@ -4,13 +4,9 @@ import { revalidatePath } from "next/cache";
 import { assertAdminRole, getAdminActorContext } from "@/lib/auth/admin-context";
 import { writeAudit } from "@/lib/governance/audit";
 import { setReviewDecision } from "@/lib/reviews/review-service";
-import {
-  fetchAliasRowForReview,
-  PROMOTED_ALIAS_ABSENT,
-  recordReviewAliasPromotion,
-  undoPromotedReviewDecision,
-} from "@/lib/reviews/review-promotion";
+import { undoPromotedReviewDecision } from "@/lib/reviews/review-promotion";
 import { decideEnrichmentProposal } from "@/lib/enrichment/proposal-service";
+import { promoteReviewApproval } from "@/lib/promotion/review-flow";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
 import { normalizeText } from "@/lib/matching/normalize-text";
 
@@ -40,8 +36,6 @@ export async function approveReviewAction(reviewId: string, selectedValueId?: st
     return;
   }
   const normalizedAlias = normalizeText(row.input as string);
-  const existingAlias = await fetchAliasRowForReview(admin, row.field_type_id as string, normalizedAlias);
-  const snapshotBefore = existingAlias ?? PROMOTED_ALIAS_ABSENT;
 
   const decision = await setReviewDecision({
     reviewId,
@@ -54,28 +48,21 @@ export async function approveReviewAction(reviewId: string, selectedValueId?: st
     return;
   }
 
-  await admin.from("field_aliases").upsert(
-    {
-      field_value_id: resolvedValueId,
-      field_type_id: row.field_type_id,
-      alias: row.input,
-      normalized_alias: normalizedAlias,
-      locale: null,
-      source: "review_approval",
-      confidence: 0.95,
-      status: "active",
-    },
-    { onConflict: "field_type_id,normalized_alias" },
-  );
-
-  await recordReviewAliasPromotion({
+  await promoteReviewApproval({
     admin,
-    reviewId,
+    sourceKind: "review",
+    sourceId: reviewId,
     organizationId: actor.organizationId,
     actorId: actor.userId,
-    fieldTypeId: row.field_type_id as string,
-    normalizedAlias,
-    snapshotBefore,
+    payload: {
+      target: "field_aliases",
+      fieldTypeId: row.field_type_id as string,
+      fieldValueId: resolvedValueId,
+      alias: row.input as string,
+      normalizedAlias,
+      source: "review_approval",
+      confidence: 0.95,
+    },
   });
   revalidatePath("/dashboard/reviews");
 }

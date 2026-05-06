@@ -4,19 +4,22 @@ export type ApiScope =
   | "read:packs"
   | "read:fields"
   | "read:flows"
+  | "read:promoted-intelligence"
   | "normalize"
   | "validate"
   | "parse"
   | "admin:reviews"
   | "admin:fields"
   | "admin:policies"
-  | "admin:flows";
+  | "admin:flows"
+  | "admin:promotions";
 
 /** Every scope that may be granted to an API key (server validation + dashboard UI). */
 export const ALL_API_KEY_SCOPES: readonly ApiScope[] = [
   "read:packs",
   "read:fields",
   "read:flows",
+  "read:promoted-intelligence",
   "normalize",
   "validate",
   "parse",
@@ -24,6 +27,7 @@ export const ALL_API_KEY_SCOPES: readonly ApiScope[] = [
   "admin:fields",
   "admin:policies",
   "admin:flows",
+  "admin:promotions",
 ];
 
 /** Default scopes pre-selected in the dashboard when creating a key. */
@@ -31,6 +35,7 @@ export const DEFAULT_API_KEY_SCOPES: ApiScope[] = [
   "read:packs",
   "read:fields",
   "read:flows",
+  "read:promoted-intelligence",
   "normalize",
   "validate",
   "parse",
