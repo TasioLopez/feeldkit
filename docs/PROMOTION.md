@@ -130,7 +130,10 @@ controls require profile role `platform_admin`.
 
 ### Wave 1 — engine + data model
 
-1. Apply migration `20260507000000_phase5_promotion_engine.sql`.
+1. Apply migrations `20260507000000_phase5_promotion_engine.sql` and
+   `20260507110000_phase5_org_alias_org_value_link.sql`. The latter lets
+   org-scoped aliases point to org-scoped values, which is required for AI
+   proposal approvals.
 2. (Optional) seed `org_promotion_settings` for any org that should default to
    `global` scope. Otherwise the safe default (`org`, propose to global)
    applies.

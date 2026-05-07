@@ -18,7 +18,7 @@ field mapping work while preserving explainability and governance.
   (`admin:promotions`, `platform_admin`), AI enrichment via same promotion path + undo, semver registry
   (`promote:rollup`), public promoted-intelligence read API, dashboard surfaces (`/dashboard/promotions`,
   governance promotion toggles, review impact metrics). See [`docs/PROMOTION.md`](PROMOTION.md). Per-environment:
-  apply migrations, deploy app, run smoke + `promote:rollup` when ready.
+  apply all Phase 5 migrations (including org-alias repair), deploy app, run smoke + `promote:rollup` when ready.
 
 ## Pre–Phase 4 checklist (short)
 

@@ -204,7 +204,11 @@ export async function decideEnrichmentProposal(args: {
       return { ok: false, error: valuePromotion.error ?? "Unable to create canonical value." };
     }
 
-    await promoteReviewApproval({
+    const valueRef =
+      valuePromotion.apply.resolvedTable === "org_field_values"
+        ? { orgFieldValueId: valuePromotion.apply.targetId }
+        : { fieldValueId: valuePromotion.apply.targetId };
+    const aliasPromotion = await promoteReviewApproval({
       admin,
       sourceKind: "enrichment_proposal",
       sourceId: args.proposalId,
@@ -215,13 +219,16 @@ export async function decideEnrichmentProposal(args: {
       payload: {
         target: "field_aliases",
         fieldTypeId: proposal.field_type_id as string,
-        fieldValueId: valuePromotion.apply.targetId,
+        ...valueRef,
         alias: proposal.source_input as string,
         normalizedAlias: normalizeText(proposal.source_input as string),
         source: "ai_proposal",
         confidence: 0.9,
       },
     });
+    if (!aliasPromotion.ok) {
+      return { ok: false, error: aliasPromotion.error ?? "Unable to create alias." };
+    }
   }
 
   const { error: updateErr } = await admin

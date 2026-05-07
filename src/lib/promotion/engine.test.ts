@@ -109,6 +109,46 @@ describe("applyPromotion", () => {
     expect(admin._tables.field_aliases).toHaveLength(0);
   });
 
+  it("upserts an org alias that points at an org-scoped value", async () => {
+    const admin = makeStubAdmin();
+    const res = await applyPromotion({
+      admin: admin as never,
+      scope: "org",
+      organizationId: "org-1",
+      actorId: "u-1",
+      payload: {
+        target: "field_aliases",
+        fieldTypeId: "ft-1",
+        orgFieldValueId: "org-v-1",
+        alias: "Org local",
+        normalizedAlias: "org local",
+      },
+    });
+    expect(res.ok).toBe(true);
+    expect(admin._tables.org_field_aliases[0].field_value_id).toBeNull();
+    expect(admin._tables.org_field_aliases[0].org_field_value_id).toBe("org-v-1");
+  });
+
+  it("rejects org aliases with both global and org-scoped value references", async () => {
+    const admin = makeStubAdmin();
+    const res = await applyPromotion({
+      admin: admin as never,
+      scope: "org",
+      organizationId: "org-1",
+      actorId: "u-1",
+      payload: {
+        target: "field_aliases",
+        fieldTypeId: "ft-1",
+        fieldValueId: "fv-1",
+        orgFieldValueId: "org-v-1",
+        alias: "Bad",
+        normalizedAlias: "bad",
+      },
+    });
+    expect(res.ok).toBe(false);
+    expect(res.error).toBe("org_alias_requires_exactly_one_value_ref");
+  });
+
   it("upserts an alias into field_aliases under scope='global'", async () => {
     const admin = makeStubAdmin();
     const res = await applyPromotion({

@@ -40,7 +40,8 @@ export type OrgPromotionSettings = {
 export type FieldAliasPromotionPayload = {
   target: "field_aliases";
   fieldTypeId: string;
-  fieldValueId: string;
+  fieldValueId?: string | null;
+  orgFieldValueId?: string | null;
   alias: string;
   normalizedAlias: string;
   locale?: string | null;

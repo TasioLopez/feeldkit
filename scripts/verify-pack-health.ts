@@ -488,6 +488,34 @@ async function run() {
   }
   if (!promotionTablesOk) failed = true;
 
+  const { data: orgAliasRows, error: orgAliasErr } = await admin
+    .from("org_field_aliases")
+    .select("id, field_value_id, org_field_value_id")
+    .limit(500);
+  let orgAliasesConsistent = !orgAliasErr;
+  for (const row of orgAliasRows ?? []) {
+    const globalValueId = row.field_value_id as string | null;
+    const orgValueId = row.org_field_value_id as string | null;
+    if (Boolean(globalValueId) === Boolean(orgValueId)) {
+      orgAliasesConsistent = false;
+      console.log(`  [LOW] org_field_alias_invalid_value_refs id=${row.id}`);
+      continue;
+    }
+    const table = globalValueId ? "field_values" : "org_field_values";
+    const targetId = globalValueId ?? orgValueId;
+    const { data: exists } = await admin.from(table).select("id").eq("id", targetId).maybeSingle();
+    if (!exists?.id) {
+      orgAliasesConsistent = false;
+      console.log(`  [LOW] org_field_alias_broken_value_ref id=${row.id} table=${table}`);
+    }
+  }
+  console.log(`${orgAliasesConsistent ? "[OK]" : "[LOW]"} org_field_aliases_value_refs_consistent`);
+  if (orgAliasErr) {
+    orgAliasesConsistent = false;
+    console.log(`  [LOW] ${orgAliasErr.message}`);
+  }
+  if (!orgAliasesConsistent) failed = true;
+
   const { data: proposalRows, error: ppErr } = await admin
     .from("promotion_proposals")
     .select("id, status, audit_log_id, organization_id, target_table");

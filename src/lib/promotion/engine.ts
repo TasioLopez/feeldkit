@@ -47,9 +47,22 @@ async function upsertOrgAlias(
   resolvedTable: PromotionResolvedTargetTable,
 ): Promise<PromotionApplyResult> {
   const payload = args.payload as Extract<PromotionPayload, { target: "field_aliases" }>;
+  const hasGlobalValue = Boolean(payload.fieldValueId);
+  const hasOrgValue = Boolean(payload.orgFieldValueId);
+  if (hasGlobalValue === hasOrgValue) {
+    return {
+      ok: false,
+      scope: args.scope,
+      resolvedTable,
+      targetId: null,
+      snapshotBefore: ABSENT_SNAPSHOT,
+      snapshotAfter: null,
+      error: "org_alias_requires_exactly_one_value_ref",
+    };
+  }
   const { data: before } = await args.admin
     .from("org_field_aliases")
-    .select("id, field_value_id, field_type_id, alias, normalized_alias, locale, source, confidence, status, created_at, updated_at")
+    .select("id, field_value_id, org_field_value_id, field_type_id, alias, normalized_alias, locale, source, confidence, status, created_at, updated_at")
     .eq("organization_id", args.organizationId)
     .eq("field_type_id", payload.fieldTypeId)
     .eq("normalized_alias", payload.normalizedAlias)
@@ -63,7 +76,8 @@ async function upsertOrgAlias(
       {
         organization_id: args.organizationId,
         field_type_id: payload.fieldTypeId,
-        field_value_id: payload.fieldValueId,
+        field_value_id: payload.fieldValueId ?? null,
+        org_field_value_id: payload.orgFieldValueId ?? null,
         alias: payload.alias,
         normalized_alias: payload.normalizedAlias,
         locale: payload.locale ?? null,
@@ -105,6 +119,17 @@ async function upsertGlobalAlias(
   resolvedTable: PromotionResolvedTargetTable,
 ): Promise<PromotionApplyResult> {
   const payload = args.payload as Extract<PromotionPayload, { target: "field_aliases" }>;
+  if (!payload.fieldValueId) {
+    return {
+      ok: false,
+      scope: args.scope,
+      resolvedTable,
+      targetId: null,
+      snapshotBefore: ABSENT_SNAPSHOT,
+      snapshotAfter: null,
+      error: "global_alias_requires_field_value_id",
+    };
+  }
   const { data: before } = await args.admin
     .from("field_aliases")
     .select("id, field_value_id, field_type_id, alias, normalized_alias, locale, source, confidence, status, created_at, updated_at")

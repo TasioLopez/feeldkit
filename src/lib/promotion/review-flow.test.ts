@@ -129,6 +129,27 @@ describe("promoteReviewApproval", () => {
     expect(ledger.target_table).toBe("org_field_aliases");
   });
 
+  it("does not create pending_global for org aliases that depend on org_field_values", async () => {
+    const admin = makeAdmin();
+    const out = await promoteReviewApproval({
+      admin: admin as never,
+      sourceKind: "enrichment_proposal",
+      sourceId: "proposal-1",
+      organizationId: "org-1",
+      actorId: "u-1",
+      payload: {
+        target: "field_aliases",
+        fieldTypeId: "ft-1",
+        orgFieldValueId: "org-v-1",
+        alias: "AI alias",
+        normalizedAlias: "ai alias",
+      },
+    });
+    expect(out.ok).toBe(true);
+    expect(out.pendingGlobal).toBe(false);
+    expect(admin._tables.promotion_proposals.map((row) => row.status)).toEqual(["approved_org"]);
+  });
+
   it("with default_scope=global and propose enabled: writes directly to field_aliases + approved_global proposal", async () => {
     const admin = makeAdmin({
       org_promotion_settings: [

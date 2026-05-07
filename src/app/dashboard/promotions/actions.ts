@@ -8,7 +8,8 @@ import {
 import { writeAudit } from "@/lib/governance/audit";
 import { applyPromotion } from "@/lib/promotion/engine";
 import { getPromotionProposal, setProposalStatus } from "@/lib/promotion/repository";
-import type { PromotionPayload } from "@/lib/promotion/types";
+import type { PromotionPayload, PromotionProposalRow } from "@/lib/promotion/types";
+import { normalizeText } from "@/lib/matching/normalize-text";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
 
 function decodePayload(targetTable: string, payload: Record<string, unknown>): PromotionPayload | null {
@@ -124,6 +125,15 @@ export async function approvePromotionProposalAction(formData: FormData): Promis
     created_by: actor.userId,
   });
 
+  const aliasResult = await maybePromoteGlobalAliasForEnrichmentValue({
+    admin,
+    proposal,
+    globalValueId: apply.targetId,
+    actorId: actor.userId,
+    auditLogId: auditId,
+  });
+  if (!aliasResult.ok) return;
+
   await setProposalStatus(admin, {
     proposalId: proposal.id,
     status: "approved_global",
@@ -173,4 +183,60 @@ export async function rejectPromotionProposalAction(formData: FormData): Promise
   });
 
   revalidatePath("/dashboard/promotions");
+}
+
+async function maybePromoteGlobalAliasForEnrichmentValue(args: {
+  admin: NonNullable<ReturnType<typeof getSupabaseServiceClient>>;
+  proposal: PromotionProposalRow;
+  globalValueId: string;
+  actorId: string;
+  auditLogId: string | null;
+}): Promise<{ ok: boolean; error?: string }> {
+  const { admin, proposal } = args;
+  if (proposal.sourceKind !== "enrichment_proposal" || proposal.targetTable !== "field_values") {
+    return { ok: true };
+  }
+
+  const { data: sourceProposal, error: sourceErr } = await admin
+    .from("enrichment_proposals")
+    .select("field_type_id, source_input")
+    .eq("id", proposal.sourceId)
+    .eq("organization_id", proposal.organizationId)
+    .maybeSingle();
+  if (sourceErr || !sourceProposal?.source_input || !sourceProposal?.field_type_id) {
+    return { ok: false, error: sourceErr?.message ?? "enrichment_source_not_found" };
+  }
+
+  const aliasApply = await applyPromotion({
+    admin,
+    scope: "global",
+    organizationId: proposal.organizationId,
+    actorId: args.actorId,
+    payload: {
+      target: "field_aliases",
+      fieldTypeId: sourceProposal.field_type_id as string,
+      fieldValueId: args.globalValueId,
+      alias: sourceProposal.source_input as string,
+      normalizedAlias: normalizeText(sourceProposal.source_input as string),
+      source: "curator_approved_ai_alias",
+      confidence: 0.9,
+    },
+  });
+  if (!aliasApply.ok || !aliasApply.targetId) {
+    return { ok: false, error: aliasApply.error ?? "alias_apply_failed" };
+  }
+
+  await admin.from("promoted_decisions").insert({
+    source_kind: proposal.sourceKind,
+    source_id: proposal.sourceId,
+    organization_id: proposal.organizationId,
+    target_table: aliasApply.resolvedTable,
+    target_id: aliasApply.targetId,
+    snapshot_before: aliasApply.snapshotBefore as Record<string, unknown>,
+    snapshot_after: (aliasApply.snapshotAfter ?? {}) as Record<string, unknown>,
+    audit_log_id: args.auditLogId,
+    created_by: args.actorId,
+  });
+
+  return { ok: true };
 }

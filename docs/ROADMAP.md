@@ -36,7 +36,7 @@
   governance `promotion-settings` API + dashboard form, enrichment wired through `promoteReviewApproval`.
 - **Wave 3:** `promoted_intelligence_versions` / `_entries`, `npm run promote:rollup`, public
   `GET /api/v1/promoted-intelligence/versions*`, `/dashboard/promotions` + registry, review impact tiles.
-- **Operator checklist:** migrations `20260507000000_phase5_promotion_engine.sql` + `20260507100000_phase5_wave3_promoted_intelligence.sql`,
+- **Operator checklist:** migrations `20260507000000_phase5_promotion_engine.sql` + `20260507100000_phase5_wave3_promoted_intelligence.sql` + `20260507110000_phase5_org_alias_org_value_link.sql`,
   then `npm run promote:rollup` once promotions exist — see [`docs/PROMOTION.md`](PROMOTION.md).
 - Exit criteria (product): measurable drop in repeated manual decisions (track via `promotion:metrics`).
 

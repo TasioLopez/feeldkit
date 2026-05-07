@@ -127,7 +127,12 @@ export async function promoteReviewApproval(args: PromoteReviewArgs): Promise<Pr
   }
 
   let pendingGlobal = false;
-  if (scope === "org" && !settings.optOutGlobalPropose) {
+  // Org-scoped aliases that point at org_field_values are dependent on the
+  // org-local value. Curator global promotion for those is emitted when the
+  // field_values proposal is approved globally, once the canonical value id exists.
+  const suppressDependentAliasProposal =
+    args.payload.target === "field_aliases" && Boolean(args.payload.orgFieldValueId);
+  if (scope === "org" && !settings.optOutGlobalPropose && !suppressDependentAliasProposal) {
     await createPromotionProposal(args.admin, {
       sourceKind: args.sourceKind,
       sourceId: args.sourceId,

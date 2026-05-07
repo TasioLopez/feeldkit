@@ -18,6 +18,29 @@ export const metadata: Metadata = {
   description: "Pending global promotion proposals across organizations.",
 };
 
+function proposalTitle(payload: Record<string, unknown>, targetTable: string, fallbackId: string): string {
+  if (targetTable === "field_values") {
+    return String(payload.label ?? payload.key ?? fallbackId);
+  }
+  if (targetTable === "field_aliases") {
+    return String(payload.alias ?? payload.normalizedAlias ?? fallbackId);
+  }
+  if (targetTable === "field_crosswalks") {
+    return `${String(payload.crosswalkType ?? "crosswalk")}: ${String(payload.fromValueId ?? "?")} -> ${String(payload.toValueId ?? "?")}`;
+  }
+  return fallbackId;
+}
+
+function proposalSubtitle(payload: Record<string, unknown>, targetTable: string): string {
+  if (targetTable === "field_values") {
+    return `key ${String(payload.key ?? "unknown")} · value proposal`;
+  }
+  if (targetTable === "field_aliases") {
+    return `normalized ${String(payload.normalizedAlias ?? "unknown")} · alias proposal`;
+  }
+  return `${targetTable} proposal`;
+}
+
 export default async function DashboardPromotionsPage() {
   const actor = await getAdminActorContext();
   const admin = getSupabaseServiceClient();
@@ -62,7 +85,10 @@ export default async function DashboardPromotionsPage() {
               <Card variant="elevated">
                 <CardHeader>
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <CardTitle className="text-base font-mono text-xs">{p.id}</CardTitle>
+                    <div className="space-y-1">
+                      <CardTitle className="text-base">{proposalTitle(p.payload, p.targetTable, p.id)}</CardTitle>
+                      <p className="text-xs text-muted-foreground">{proposalSubtitle(p.payload, p.targetTable)}</p>
+                    </div>
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="warning">{p.status}</Badge>
                       <Badge variant="outline">{p.targetTable}</Badge>
@@ -70,7 +96,7 @@ export default async function DashboardPromotionsPage() {
                     </div>
                   </div>
                   <CardDescription className="font-mono text-[11px]">
-                    org {p.organizationId} · source {p.sourceId}
+                    proposal {p.id.slice(0, 8)}... · org {p.organizationId.slice(0, 8)}... · source {p.sourceId.slice(0, 8)}...
                   </CardDescription>
                   <pre className="mt-2 max-h-40 overflow-auto rounded-md border border-stroke-soft bg-surface-panel p-2 text-[10px] text-muted-foreground">
                     {JSON.stringify(p.payload, null, 2)}
