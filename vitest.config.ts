@@ -8,7 +8,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "packages/sdk/test/**/*.test.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],

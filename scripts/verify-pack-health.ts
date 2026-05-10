@@ -6,6 +6,12 @@ import { orgPolicyOverrideRowConsistent } from "../src/lib/governance/policy-ove
 import { assertPolicyConsistency } from "../src/lib/matching/inference/policy";
 import { runInference } from "../src/lib/matching/inference/engine";
 import { getFieldRepository } from "../src/lib/repositories/get-field-repository";
+import { exportOrgConfigProfile } from "../src/lib/profiles/export";
+import { diffProfiles } from "../src/lib/profiles/diff";
+import {
+  ORG_CONFIG_PROFILE_SCHEMA,
+  SIMULATION_PROFILE_SCHEMA,
+} from "../src/lib/profiles/types";
 
 const MIN_PACK_VALUE_COUNTS: Record<string, number> = {
   geo: 200,
@@ -85,6 +91,10 @@ type FlowsPrecisionReport = {
 
 const PRECISION_REPORT_PATH = resolve(process.cwd(), ".generated", "inference-precision-report.json");
 const FLOWS_PRECISION_REPORT_PATH = resolve(process.cwd(), ".generated", "flows-precision-report.json");
+const SIMULATE_ROUTE_PATH = resolve(process.cwd(), "src/app/api/v1/flow/simulate/route.ts");
+const PROFILE_EXPORT_ROUTE_PATH = resolve(process.cwd(), "src/app/api/v1/admin/profile/export/route.ts");
+const PROFILE_IMPORT_ROUTE_PATH = resolve(process.cwd(), "src/app/api/v1/admin/profile/import/route.ts");
+const PROFILE_SPEC_PATH = resolve(process.cwd(), "docs/PROFILE_SPEC.md");
 
 async function loadPrecisionReport(): Promise<PrecisionReport | null> {
   try {
@@ -613,6 +623,66 @@ async function run() {
   console.log(`${entriesConsistent ? "[OK]" : "[LOW]"} promoted_intelligence_entries_consistent`);
   if (entErr) entriesConsistent = false;
   if (!entriesConsistent) failed = true;
+
+  // Phase 6 — developer productization gates
+  let simulationEndpointOk = false;
+  try {
+    const simulateRoute = await readFile(SIMULATE_ROUTE_PATH, "utf8");
+    simulationEndpointOk =
+      simulateRoute.includes("createMultiScopedHandler") &&
+      simulateRoute.includes("normalize") &&
+      simulateRoute.includes("read:flows") &&
+      simulateRoute.includes("simulateFlow");
+  } catch {
+    simulationEndpointOk = false;
+  }
+  console.log(`${simulationEndpointOk ? "[OK]" : "[LOW]"} simulation_endpoint_present`);
+  if (!simulationEndpointOk) failed = true;
+
+  let profileSchemasLocked = false;
+  try {
+    const [profileSpec, profileExportRoute, profileImportRoute] = await Promise.all([
+      readFile(PROFILE_SPEC_PATH, "utf8"),
+      readFile(PROFILE_EXPORT_ROUTE_PATH, "utf8"),
+      readFile(PROFILE_IMPORT_ROUTE_PATH, "utf8"),
+    ]);
+    profileSchemasLocked =
+      profileSpec.includes(SIMULATION_PROFILE_SCHEMA) &&
+      profileSpec.includes(ORG_CONFIG_PROFILE_SCHEMA) &&
+      profileExportRoute.includes("profile.export") &&
+      profileImportRoute.includes("ORG_CONFIG_PROFILE_SCHEMA") &&
+      profileImportRoute.includes("z.literal") &&
+      profileImportRoute.includes("admin:policies") &&
+      profileImportRoute.includes("admin:flows") &&
+      profileImportRoute.includes("admin:promotions");
+  } catch {
+    profileSchemasLocked = false;
+  }
+  console.log(`${profileSchemasLocked ? "[OK]" : "[LOW]"} profile_schema_versions_locked`);
+  if (!profileSchemasLocked) failed = true;
+
+  const orgCandidates = new Set<string>();
+  for (const table of ["org_policy_overrides", "org_field_locks", "flow_pack_overrides", "org_promotion_settings"] as const) {
+    const { data: rows } = await admin.from(table).select("organization_id").limit(5);
+    for (const row of rows ?? []) {
+      if (row.organization_id) orgCandidates.add(String(row.organization_id));
+    }
+  }
+  if (orgCandidates.size === 0) {
+    console.log("[WARN] profile_export_roundtrip no org governance rows present");
+  } else {
+    let roundtripOk = true;
+    for (const orgId of orgCandidates) {
+      const exported = await exportOrgConfigProfile(admin, orgId);
+      const diff = diffProfiles(exported, JSON.parse(JSON.stringify(exported)));
+      if (diff.length > 0) {
+        roundtripOk = false;
+        console.log(`  [LOW] profile_roundtrip_diff org=${orgId} changes=${diff.length}`);
+      }
+    }
+    console.log(`${roundtripOk ? "[OK]" : "[LOW]"} profile_export_roundtrip orgs=${orgCandidates.size}`);
+    if (!roundtripOk) failed = true;
+  }
 
   if (!report) {
     console.log("[WARN] import report not found; skipping consistency checks against .generated/full-v1-import-report.json");

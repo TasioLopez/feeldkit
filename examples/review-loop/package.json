@@ -1,0 +1,12 @@
+{
+  "name": "feeldkit-example-review-loop",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx index.ts"
+  },
+  "dependencies": {
+    "@feeldkit/sdk": "file:../../packages/sdk",
+    "tsx": "^4.21.0"
+  }
+}

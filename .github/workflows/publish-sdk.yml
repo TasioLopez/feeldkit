@@ -1,0 +1,51 @@
+name: Publish SDK
+
+on:
+  push:
+    tags:
+      - "sdk-v*"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run npm publish in --dry-run mode (no actual publish)"
+        required: true
+        default: "true"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          registry-url: "https://registry.npmjs.org"
+      - name: Install root deps
+        run: npm ci
+      - name: Install SDK deps
+        run: npm ci --prefix packages/sdk
+      - name: Typecheck SDK
+        run: npm --prefix packages/sdk run typecheck
+      - name: Test SDK
+        run: npm --prefix packages/sdk run test
+      - name: Build SDK
+        run: npm --prefix packages/sdk run build
+      - name: Verify built artifacts
+        run: |
+          test -f packages/sdk/dist/index.js
+          test -f packages/sdk/dist/index.cjs
+          test -f packages/sdk/dist/index.d.ts
+      - name: Publish to npm (dry run)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true'
+        working-directory: packages/sdk
+        run: npm publish --provenance --access public --dry-run
+      - name: Publish to npm
+        if: startsWith(github.ref, 'refs/tags/sdk-v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true')
+        working-directory: packages/sdk
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public

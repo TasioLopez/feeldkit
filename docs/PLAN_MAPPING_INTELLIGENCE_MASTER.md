@@ -19,6 +19,11 @@ field mapping work while preserving explainability and governance.
   (`promote:rollup`), public promoted-intelligence read API, dashboard surfaces (`/dashboard/promotions`,
   governance promotion toggles, review impact metrics). See [`docs/PROMOTION.md`](PROMOTION.md). Per-environment:
   apply all Phase 5 migrations (including org-alias repair), deploy app, run smoke + `promote:rollup` when ready.
+- **Phase 6 closed (engineering):** developer productization is implemented — publish-ready
+  `@feeldkit/sdk@0.2.0`, full OpenAPI parity, `simulation_profile.v1` and `org_config_profile.v1`
+  contracts ([`docs/PROFILE_SPEC.md`](PROFILE_SPEC.md)), profile/simulate CLI scripts, `/dashboard/developer`,
+  `/developers`, runnable `examples/`, and playbooks under [`docs/PLAYBOOKS/`](PLAYBOOKS/). See
+  [`docs/SDK.md`](SDK.md) for install, scopes, retries, errors, and recipes.
 
 ## Pre–Phase 4 checklist (short)
 
@@ -100,13 +105,13 @@ Scope:
 Exit criteria:
 - Repeated mapping cases require less manual intervention over time.
 
-### Phase 6 - Developer Productization
+### Phase 6 - Developer Productization *(engineering closed)*
 Scope:
 - Publish API usage patterns and SDK helpers.
 - Provide integration examples for common source/target routes.
 - Add simulation endpoint/workflow for pre-deployment validation.
 Exit criteria:
-- Developers can implement common routes quickly with low custom code.
+- Developers can implement common routes quickly with low custom code. ✓ SDK, simulate/profile contracts, examples, playbooks, and dashboard hub landed.
 
 ### Phase 7 - Operations and SLIs
 Scope:

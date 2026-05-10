@@ -100,6 +100,16 @@ V1 examples:
 - Stable response envelope for normalize/validate/parse/crosswalk APIs
 - Admin translation routes for concept resolve/translate workflows
 
+## Developer Surface
+
+Phase 6 adds a productized developer layer on top of the mapping engine:
+
+- `packages/sdk` publishes `@feeldkit/sdk` with typed namespaces for public routes, admin governance, promotion, profile, and simulation helpers.
+- `POST /api/v1/flow/simulate` wraps `runFlow` in a dry-run contract and returns `simulation_profile.v1` case results without persisting review rows.
+- `src/lib/profiles/*` exports/imports `org_config_profile.v1` bundles for policy overrides, field locks, flow overrides, and promotion settings using logical keys rather than database IDs.
+- `public/openapi.yaml` is checked against `src/app/api/v1/**/route.ts` by `npm run docs:openapi-check`.
+- `/dashboard/developer`, `/developers`, `examples/`, and `docs/PLAYBOOKS/` turn the API surface into onboarding paths for developers and operators.
+
 ## Admin Dashboard
 Routes in `src/app/dashboard`:
 - packs and reviews for quality control

@@ -6,7 +6,9 @@ import { assertAdminRole, getAdminActorContext } from "@/lib/auth/admin-context"
 import { ALL_API_KEY_SCOPES, type ApiScope } from "@/lib/auth/api-key";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
 
-const ADMIN_SCOPES: ApiScope[] = ["admin:reviews", "admin:fields"];
+function isAdminScope(scope: ApiScope): boolean {
+  return scope.startsWith("admin:");
+}
 
 async function getActorOrgAndRole(): Promise<{ organizationId: string; role: string } | null> {
   const ctx = await getAdminActorContext();
@@ -92,7 +94,7 @@ export async function createApiKeyAction(input: {
   if (requestedScopes.length === 0) {
     return { error: "Pick at least one scope." };
   }
-  const wantsAdminScope = requestedScopes.some((scope) => ADMIN_SCOPES.includes(scope));
+  const wantsAdminScope = requestedScopes.some(isAdminScope);
   if (wantsAdminScope && ctx.role !== "owner") {
     return { error: "Only owners can issue admin scopes." };
   }

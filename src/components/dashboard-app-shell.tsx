@@ -7,6 +7,7 @@ import { useState } from "react";
 import {
   BookOpen,
   ChevronsLeftRight,
+  Code2,
   Database,
   KeyRound,
   LayoutDashboard,
@@ -49,6 +50,7 @@ const opsNav: NavItem[] = [
 
 const platformNav: NavItem[] = [
   { href: "/dashboard/api-keys", label: "API Keys", icon: KeyRound },
+  { href: "/dashboard/developer", label: "Developer", icon: Code2 },
   { href: "/dashboard/docs", label: "Docs", icon: BookOpen },
 ];
 

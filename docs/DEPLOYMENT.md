@@ -52,6 +52,29 @@ If any key was ever committed, shared, or present in public artifacts, rotate it
 
 You do not need two registrable domains; subdomains on one domain are enough.
 
+## Phase 6 - Developer Productization
+
+No database migrations are required for Phase 6. Deploying the app revision adds:
+
+- `POST /api/v1/flow/simulate` (requires both `normalize` and `read:flows`) for dry-run flow validation.
+- `GET /api/v1/admin/profile/export` and `POST /api/v1/admin/profile/import` (requires `admin:policies`, `admin:flows`, and `admin:promotions`) for portable governance config.
+- `/dashboard/developer` and `/developers` quickstarts.
+- `@feeldkit/sdk@0.2.0` source under `packages/sdk`.
+
+Per environment smoke:
+
+```bash
+npm run sdk:build
+npm run sdk:test
+npm run docs:openapi-check
+npm run simulate -- --profile ./path/to/simulation-profile.json
+npm run profile:export -- --org <org-id>
+npm run profile:import -- --file .generated/org-config-profile-<org-id>.json --org <org-id> --dry-run
+npm run verify:pack-health
+```
+
+When ready to publish the SDK, run `npm --prefix packages/sdk publish --dry-run` first. The GitHub workflow only publishes on `sdk-v*` tags or explicit workflow dispatch.
+
 ## Database migrations
 
 Apply SQL under `supabase/migrations/` to the target project (Supabase SQL editor, CLI `supabase db push`, or CI).

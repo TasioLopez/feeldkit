@@ -40,12 +40,14 @@
   then `npm run promote:rollup` once promotions exist — see [`docs/PROMOTION.md`](PROMOTION.md).
 - Exit criteria (product): measurable drop in repeated manual decisions (track via `promotion:metrics`).
 
-## Phase 6: Developer Productization
-- SDK/client helpers, examples, and integration playbooks.
-- Export/import profiles and test harness for simulation.
+## Phase 6: Developer Productization *(engineering closed — deploy + smoke per environment)*
+- Publish-ready `@feeldkit/sdk@0.2.0` with typed route coverage, retry support, examples, and [`docs/SDK.md`](SDK.md).
+- Simulation and portable org-config profiles: [`docs/PROFILE_SPEC.md`](PROFILE_SPEC.md), `POST /api/v1/flow/simulate`, `GET/POST /api/v1/admin/profile/{export,import}`.
+- Developer hub surfaces: `/dashboard/developer`, `/developers`, `examples/*`, and [`docs/PLAYBOOKS/`](PLAYBOOKS/).
+- Operator gates: build SDK, smoke simulate + profile export/import, run `npm run verify:pack-health`, optionally tag `sdk-v0.2.0`.
 - Exit criteria: external developers can onboard common flows quickly.
 
-## Phase 7: Ops and SLIs
+## Phase 7: Ops and SLIs *(next focus)*
 - Track match rate, low-confidence rate, manual-review latency, false-map rate.
 - Alerts for ingestion drift and quality regressions.
 - Exit criteria: operational quality baseline with measurable SLOs.

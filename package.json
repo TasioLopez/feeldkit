@@ -23,7 +23,14 @@
     "promotion:metrics": "node --import tsx ./scripts/promotion-metrics.ts",
     "promote:rollup": "node --import tsx ./scripts/promote-rollup.ts",
     "process:enrichment-jobs": "node --import tsx ./scripts/process-enrichment-jobs.ts",
-    "export:pack": "node --import tsx ./scripts/export-pack.ts"
+    "export:pack": "node --import tsx ./scripts/export-pack.ts",
+    "docs:openapi-check": "node --import tsx ./scripts/check-openapi.ts",
+    "profile:export": "node --import tsx ./scripts/profile-export.ts",
+    "profile:import": "node --import tsx ./scripts/profile-import.ts",
+    "simulate": "node --import tsx ./scripts/simulate.ts",
+    "sdk:build": "npm --prefix packages/sdk run build",
+    "sdk:test": "npm --prefix packages/sdk run test",
+    "sdk:typecheck": "npm --prefix packages/sdk run typecheck"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",

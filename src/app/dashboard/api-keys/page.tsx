@@ -8,13 +8,12 @@ import { isSupabaseConfigured } from "@/lib/config/env";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ALL_API_KEY_SCOPES } from "@/lib/auth/api-key";
 
 export const metadata: Metadata = {
   title: "API keys | FeeldKit",
   description: "Create and manage API keys for your organization.",
 };
-
-const scopes = ["read:packs", "read:fields", "normalize", "validate", "parse", "admin:reviews", "admin:fields"];
 
 export default async function DashboardApiKeysPage() {
   const [keys, orgContext] = await Promise.all([listApiKeysForOrganization(), getOrganizationContext()]);
@@ -57,7 +56,7 @@ export default async function DashboardApiKeysPage() {
           <CardDescription>Picked at create time. Assign the minimum scopes needed for each integration.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          {scopes.map((scope) => (
+          {ALL_API_KEY_SCOPES.map((scope) => (
             <Badge key={scope} variant="secondary" className="font-mono text-xs">
               {scope}
             </Badge>

@@ -28,3 +28,39 @@ export async function withApiScope(request: Request, scope: ApiScope) {
 
   return { ok: true as const, apiKey: authenticated };
 }
+
+/**
+ * Phase 6: variant that requires ALL of the supplied scopes. Used by the
+ * org_config_profile export/import endpoints, which touch governance + flows +
+ * promotion tables and therefore demand all three admin scopes together.
+ */
+export async function withApiScopes(request: Request, scopes: readonly ApiScope[]) {
+  const apiKey = request.headers.get("x-api-key");
+  if (!apiKey) {
+    return {
+      ok: false as const,
+      response: NextResponse.json({ error: "missing x-api-key header" }, { status: 401 }),
+    };
+  }
+
+  const authenticated = await authenticateApiKey(apiKey);
+  if (!authenticated) {
+    return {
+      ok: false as const,
+      response: NextResponse.json({ error: "invalid API key" }, { status: 401 }),
+    };
+  }
+
+  const missing = scopes.filter((scope) => !requireScope(authenticated, scope));
+  if (missing.length > 0) {
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        { error: "insufficient scope", missing_scopes: missing },
+        { status: 403 },
+      ),
+    };
+  }
+
+  return { ok: true as const, apiKey: authenticated };
+}

@@ -76,3 +76,10 @@ toggles relevant to promotion live on `org_promotion_settings`:
   enough to write the canonical pack directly).
 - `opt_out_global_propose`: when `true`, FeeldKit will never queue a
   `pending_global` proposal for that org.
+
+## Phase 6 profile portability
+
+Portable org governance profiles are documented in [`docs/PROFILE_SPEC.md`](PROFILE_SPEC.md).
+`org_config_profile.v1` exports and imports the governance tables above plus
+`org_promotion_settings`, replacing database IDs with logical keys so staging
+configuration can be dry-run and applied to production with audit entries.
