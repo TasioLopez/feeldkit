@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { generateApiKey } from "@/lib/auth/api-key-service";
-import { assertAdminRole, getAdminActorContext } from "@/lib/auth/admin-context";
+import {
+  canIssueAdminApiScopes,
+  canManageApiKeys,
+  getAdminActorContext,
+} from "@/lib/auth/admin-context";
 import { ALL_API_KEY_SCOPES, type ApiScope } from "@/lib/auth/api-key";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
 
@@ -10,24 +14,30 @@ function isAdminScope(scope: ApiScope): boolean {
   return scope.startsWith("admin:");
 }
 
-async function getActorOrgAndRole(): Promise<{ organizationId: string; role: string } | null> {
+async function getActorOrgAndRole(): Promise<{ organizationId: string; orgRole: string; platformRole: string } | null> {
   const ctx = await getAdminActorContext();
   if (!ctx) {
     return null;
   }
-  return { organizationId: ctx.organizationId, role: ctx.role };
+  return { organizationId: ctx.organizationId, orgRole: ctx.orgRole, platformRole: ctx.platformRole };
 }
 
 export async function getOrganizationContext(): Promise<{
   organizationId: string;
   organizationName: string | null;
-  role: string;
+  orgRole: string;
+  platformRole: string;
 } | null> {
   const ctx = await getActorOrgAndRole();
   if (!ctx) return null;
   const admin = getSupabaseServiceClient();
   if (!admin) {
-    return { organizationId: ctx.organizationId, organizationName: null, role: ctx.role };
+    return {
+      organizationId: ctx.organizationId,
+      organizationName: null,
+      orgRole: ctx.orgRole,
+      platformRole: ctx.platformRole,
+    };
   }
   const { data } = await admin
     .from("organizations")
@@ -37,7 +47,8 @@ export async function getOrganizationContext(): Promise<{
   return {
     organizationId: ctx.organizationId,
     organizationName: (data?.name as string | null) ?? null,
-    role: ctx.role,
+    orgRole: ctx.orgRole,
+    platformRole: ctx.platformRole,
   };
 }
 
@@ -45,7 +56,7 @@ export async function listApiKeysForOrganization(): Promise<
   Array<{ id: string; name: string; key_prefix: string; scopes: string[]; created_at: string; revoked_at: string | null }>
 > {
   const ctx = await getActorOrgAndRole();
-  if (!ctx || !["owner", "admin"].includes(ctx.role)) {
+  if (!ctx || !canManageApiKeys(ctx.orgRole)) {
     return [];
   }
   const admin = getSupabaseServiceClient();
@@ -82,10 +93,8 @@ export async function createApiKeyAction(input: {
   if (!ctx) {
     return { error: "Not signed in or profile not ready." };
   }
-  try {
-    assertAdminRole(ctx.role, "manage API keys");
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : "Forbidden" };
+  if (!canManageApiKeys(ctx.orgRole)) {
+    return { error: "Insufficient permissions to manage API keys." };
   }
   const allowed = new Set<string>(ALL_API_KEY_SCOPES);
   const requestedScopes = Array.from(new Set(input.scopes ?? [])).filter((scope): scope is ApiScope =>
@@ -95,7 +104,7 @@ export async function createApiKeyAction(input: {
     return { error: "Pick at least one scope." };
   }
   const wantsAdminScope = requestedScopes.some(isAdminScope);
-  if (wantsAdminScope && ctx.role !== "owner") {
+  if (wantsAdminScope && !canIssueAdminApiScopes(ctx.orgRole)) {
     return { error: "Only owners can issue admin scopes." };
   }
   const admin = getSupabaseServiceClient();
@@ -122,10 +131,8 @@ export async function revokeApiKeyAction(id: string): Promise<{ error?: string }
   if (!ctx) {
     return { error: "Not signed in." };
   }
-  try {
-    assertAdminRole(ctx.role, "manage API keys");
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : "Forbidden" };
+  if (!canManageApiKeys(ctx.orgRole)) {
+    return { error: "Insufficient permissions to manage API keys." };
   }
   const admin = getSupabaseServiceClient();
   if (!admin) {

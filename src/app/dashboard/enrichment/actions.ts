@@ -39,7 +39,7 @@ async function ensureAdminActor() {
     return { error: "Not authenticated." } as const;
   }
   try {
-    assertAdminRole(actor.role, "run enrichment");
+    assertAdminRole(actor.orgRole, "run enrichment");
   } catch {
     return { error: "Insufficient role for enrichment." } as const;
   }

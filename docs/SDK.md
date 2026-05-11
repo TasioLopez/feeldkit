@@ -24,6 +24,8 @@ const client = new FeeldKitClient({
 
 ## Scope Matrix
 
+Admin scopes can only be issued from the dashboard by an organization owner. Platform curator roles do not grant org key issuance by themselves; see [`docs/RBAC.md`](RBAC.md).
+
 - `normalize`: normalize, translate, flow translate, simulate.
 - `read:fields`: catalogs, field values, search, geo, standards, company lists, AI schema helpers.
 - `read:packs`: packs list/detail.

@@ -12,8 +12,8 @@ Use separate Supabase projects (or branches) for **development**, **staging**, a
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | All | Public anon key (browser + middleware) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only | Bypasses RLS for API key verification, seed scripts, profile bootstrap |
 | `NEXT_PUBLIC_SITE_URL` | All | OAuth/magic-link redirect base (must match deployed URL) |
-| `ADMIN_ALLOWED_EMAILS` | Server only | Comma-separated exact emails allowed to access admin login/callback |
-| `ADMIN_ALLOWED_EMAIL_DOMAINS` | Server only | Comma-separated email domains allowed to access admin login/callback |
+| `ADMIN_ALLOWED_EMAILS` | Server only | Comma-separated exact emails allowed to access admin login/callback; required in production unless domains are set |
+| `ADMIN_ALLOWED_EMAIL_DOMAINS` | Server only | Comma-separated email domains allowed to access admin login/callback; required in production unless emails are set |
 | `OPENAI_API_KEY` | Server only | Optional AI enrichment provider key (used for proposal generation, never auto-applies) |
 | `FEELDKIT_AI_MODEL` | Server only | Optional model override for AI enrichment (default `gpt-4.1-mini`) |
 | `FEELDKIT_AI_MIN_CONFIDENCE` | Server only | Confidence floor for storing AI proposals (default `0.4`) |
@@ -37,7 +37,7 @@ Use separate Supabase projects (or branches) for **development**, **staging**, a
 The **service role key must only run on the server** (Route Handlers, Server Actions, `scripts/*`). It is used for:
 
 - Validating API keys against `api_keys` (public API routes)
-- Bootstrapping `profiles` / `organizations` on first login
+- Bootstrapping `profiles` / `organizations` / `organization_memberships` on first login
 - Idempotent `scripts/seed.ts` against Postgres
 
 Never prefix service role variables with `NEXT_PUBLIC_`.
@@ -80,6 +80,8 @@ When ready to publish the SDK, run `npm --prefix packages/sdk publish --dry-run`
 Apply SQL under `supabase/migrations/` to the target project (Supabase SQL editor, CLI `supabase db push`, or CI).
 
 Order: initial core migration, then `*_rls_hardening.sql`, then any follow-ups.
+
+RBAC hardening adds `profiles.platform_role`, `profiles.default_organization_id`, and `organization_memberships`; details are in [`docs/RBAC.md`](RBAC.md). After applying the migration, confirm your operator account has both a platform role and an org owner membership.
 
 ## Edge rate limits
 

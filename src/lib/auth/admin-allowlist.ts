@@ -14,7 +14,7 @@ export function isAdminEmailAllowed(email: string | null | undefined): boolean {
   }
 
   if (!hasAdminAllowlist()) {
-    return true;
+    return env.NODE_ENV !== "production";
   }
 
   const normalized = normalizeEmail(email);

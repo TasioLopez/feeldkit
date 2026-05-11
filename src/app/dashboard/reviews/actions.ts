@@ -14,7 +14,7 @@ export async function approveReviewAction(reviewId: string, selectedValueId?: st
   const actor = await getAdminActorContext();
   if (!actor) return;
   try {
-    assertAdminRole(actor.role, "review mappings");
+    assertAdminRole(actor.orgRole, "review mappings");
   } catch {
     return;
   }
@@ -71,7 +71,7 @@ export async function rejectReviewAction(reviewId: string): Promise<void> {
   const actor = await getAdminActorContext();
   if (!actor) return;
   try {
-    assertAdminRole(actor.role, "review mappings");
+    assertAdminRole(actor.orgRole, "review mappings");
   } catch {
     return;
   }
@@ -109,7 +109,7 @@ export async function undoReviewAction(reviewId: string): Promise<void> {
   const actor = await getAdminActorContext();
   if (!actor) return;
   try {
-    assertAdminRole(actor.role, "review mappings");
+    assertAdminRole(actor.orgRole, "review mappings");
   } catch {
     return;
   }
@@ -128,7 +128,7 @@ export async function bulkApproveMappingReviewsAction(formData: FormData): Promi
   const actor = await getAdminActorContext();
   if (!actor) return;
   try {
-    assertAdminRole(actor.role, "review mappings");
+    assertAdminRole(actor.orgRole, "review mappings");
   } catch {
     return;
   }
@@ -147,7 +147,7 @@ export async function bulkRejectMappingReviewsAction(formData: FormData): Promis
   const actor = await getAdminActorContext();
   if (!actor) return;
   try {
-    assertAdminRole(actor.role, "review mappings");
+    assertAdminRole(actor.orgRole, "review mappings");
   } catch {
     return;
   }
@@ -166,7 +166,7 @@ export async function decideEnrichmentProposalAction(proposalId: string, decisio
   const actor = await getAdminActorContext();
   if (!actor) return;
   try {
-    assertAdminRole(actor.role, "review enrichment proposals");
+    assertAdminRole(actor.orgRole, "review enrichment proposals");
   } catch {
     return;
   }
@@ -188,7 +188,7 @@ export async function decideEnrichmentProposalWithEditsAction(formData: FormData
   const actor = await getAdminActorContext();
   if (!actor) return;
   try {
-    assertAdminRole(actor.role, "review enrichment proposals");
+    assertAdminRole(actor.orgRole, "review enrichment proposals");
   } catch {
     return;
   }
@@ -217,7 +217,7 @@ export async function bulkRejectPendingProposalsAction(formData: FormData): Prom
   const actor = await getAdminActorContext();
   if (!actor) return;
   try {
-    assertAdminRole(actor.role, "review enrichment proposals");
+    assertAdminRole(actor.orgRole, "review enrichment proposals");
   } catch {
     return;
   }
@@ -242,7 +242,7 @@ export async function bulkApprovePendingProposalsAction(formData: FormData): Pro
   const actor = await getAdminActorContext();
   if (!actor) return;
   try {
-    assertAdminRole(actor.role, "review enrichment proposals");
+    assertAdminRole(actor.orgRole, "review enrichment proposals");
   } catch {
     return;
   }

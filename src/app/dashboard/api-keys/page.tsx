@@ -29,7 +29,7 @@ export default async function DashboardApiKeysPage() {
               organizationName={orgContext.organizationName}
             />
           ) : null}
-          <ApiKeysClient initialKeys={keys} role={orgContext?.role ?? "viewer"} />
+          <ApiKeysClient initialKeys={keys} orgRole={orgContext?.orgRole ?? "viewer"} />
         </>
       ) : (
         <Alert variant="warning">

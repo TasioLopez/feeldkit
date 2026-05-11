@@ -81,7 +81,7 @@ export async function approvePromotionProposalAction(formData: FormData): Promis
   const actor = await getAdminActorContext();
   if (!actor) return;
   try {
-    assertPlatformAdminRole(actor.role, "approve global promotion");
+    assertPlatformAdminRole(actor.platformRole, "approve global promotion");
   } catch {
     return;
   }
@@ -154,7 +154,7 @@ export async function rejectPromotionProposalAction(formData: FormData): Promise
   const actor = await getAdminActorContext();
   if (!actor) return;
   try {
-    assertPlatformAdminRole(actor.role, "reject global promotion");
+    assertPlatformAdminRole(actor.platformRole, "reject global promotion");
   } catch {
     return;
   }

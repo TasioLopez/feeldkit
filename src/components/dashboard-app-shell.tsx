@@ -30,6 +30,11 @@ import { Kbd } from "@/components/ui/kbd";
 import { cn } from "@/lib/cn";
 
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard };
+type DashboardCapabilities = {
+  canManageOrg: boolean;
+  canManageApiKeys: boolean;
+  canCurateGlobalPromotions: boolean;
+};
 
 const mainNav: NavItem[] = [{ href: "/dashboard", label: "Overview", icon: LayoutDashboard }];
 
@@ -98,13 +103,38 @@ function NavSection({ title, items, collapsed }: { title: string; items: NavItem
   );
 }
 
-export function DashboardAppShell({ userEmail, children }: { userEmail: string | null; children: ReactNode }) {
+export function DashboardAppShell({
+  userEmail,
+  capabilities,
+  children,
+}: {
+  userEmail: string | null;
+  capabilities?: DashboardCapabilities;
+  children: ReactNode;
+}) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const resolvedCapabilities = capabilities ?? {
+    canManageOrg: false,
+    canManageApiKeys: false,
+    canCurateGlobalPromotions: false,
+  };
+  const visibleOpsNav = opsNav.filter((item) => {
+    if (item.href === "/dashboard/promotions") {
+      return resolvedCapabilities.canCurateGlobalPromotions;
+    }
+    return resolvedCapabilities.canManageOrg;
+  });
+  const visiblePlatformNav = platformNav.filter((item) => {
+    if (item.href === "/dashboard/api-keys") {
+      return resolvedCapabilities.canManageApiKeys;
+    }
+    return true;
+  });
 
   const currentLabel =
-    [...mainNav, ...dataNav, ...opsNav, ...platformNav].find(
+    [...mainNav, ...dataNav, ...visibleOpsNav, ...visiblePlatformNav].find(
       (item) => pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`)),
     )?.label ?? "Dashboard";
 
@@ -128,8 +158,8 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
           ))}
         </div>
         <NavSection title="Data" items={dataNav} collapsed={collapsed} />
-        <NavSection title="Operations" items={opsNav} collapsed={collapsed} />
-        <NavSection title="Platform" items={platformNav} collapsed={collapsed} />
+        {visibleOpsNav.length > 0 ? <NavSection title="Operations" items={visibleOpsNav} collapsed={collapsed} /> : null}
+        <NavSection title="Platform" items={visiblePlatformNav} collapsed={collapsed} />
         {!collapsed ? (
           <div className="rounded-lg border border-sidebar-border bg-sidebar-accent/50 px-3 py-2">
             <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Status</p>
@@ -210,8 +240,8 @@ export function DashboardAppShell({ userEmail, children }: { userEmail: string |
               ))}
             </div>
             <NavSection title="Data" items={dataNav} collapsed={false} />
-            <NavSection title="Operations" items={opsNav} collapsed={false} />
-            <NavSection title="Platform" items={platformNav} collapsed={false} />
+            {visibleOpsNav.length > 0 ? <NavSection title="Operations" items={visibleOpsNav} collapsed={false} /> : null}
+            <NavSection title="Platform" items={visiblePlatformNav} collapsed={false} />
           </nav>
           <div className="border-t border-sidebar-border p-3">
             {userEmail ? <p className="truncate px-1 text-xs text-muted-foreground">{userEmail}</p> : null}

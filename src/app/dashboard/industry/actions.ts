@@ -8,7 +8,7 @@ export async function decideIndustryEdgeAction(edgeId: string, decision: "approv
   const actor = await getAdminActorContext();
   if (!actor) return;
   try {
-    assertAdminRole(actor.role, "review industry mappings");
+    assertAdminRole(actor.orgRole, "review industry mappings");
   } catch {
     return;
   }

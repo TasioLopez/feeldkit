@@ -17,7 +17,7 @@ export default async function PromotionsRegistryPage() {
   const actor = await getAdminActorContext();
   const admin = getSupabaseServiceClient();
   const canView = actor
-    ? isPlatformAdmin(actor.role) || ["owner", "admin"].includes(actor.role)
+    ? isPlatformAdmin(actor.platformRole) || ["owner", "admin"].includes(actor.orgRole)
     : false;
 
   const { data: versions } =
@@ -43,7 +43,7 @@ export default async function PromotionsRegistryPage() {
       {!actor ? (
         <EmptyState title="Sign in required" description="Connect Supabase and sign in." />
       ) : !canView ? (
-        <EmptyState title="Insufficient access" description="Owner, admin, or platform_admin required." />
+        <EmptyState title="Insufficient access" description="Org owner/admin or platform curator access required." />
       ) : !versions || versions.length === 0 ? (
         <EmptyState
           title="No versions yet"

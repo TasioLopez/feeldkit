@@ -23,7 +23,7 @@ FeeldKit governance captures **per-organization confidence policy**, **field loc
 | `admin:reviews` | Review undo (`POST admin/reviews/{id}/undo`), AI-proposal undo (`POST admin/proposals/{id}/undo`), audit reads (`GET admin/audit`). |
 | `admin:promotions` | Curator queue (`GET admin/promotions`), curator decisions (`POST admin/promotions/{id}/approve\|reject`). |
 
-Dashboard defaults gate privileged scopes to organization **owners**.
+Dashboard defaults gate privileged scopes to organization **owners**. See [`docs/RBAC.md`](RBAC.md) for the split between platform curation roles and organization membership roles.
 
 ## Undo semantics (`promoted_decisions`)
 

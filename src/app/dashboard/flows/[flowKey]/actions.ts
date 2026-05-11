@@ -9,7 +9,7 @@ export async function retireFlowVersionDashboardAction(flowKey: string, version:
   const actor = await getAdminActorContext();
   if (!actor) return;
   try {
-    assertAdminRole(actor.role, "retire flow versions");
+    assertAdminRole(actor.orgRole, "retire flow versions");
   } catch {
     return;
   }
@@ -42,7 +42,7 @@ export async function rollbackFlowDashboardAction(flowKey: string, targetVersion
   const actor = await getAdminActorContext();
   if (!actor) return;
   try {
-    assertAdminRole(actor.role, "rollback flow versions");
+    assertAdminRole(actor.orgRole, "rollback flow versions");
   } catch {
     return;
   }

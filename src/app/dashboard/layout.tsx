@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { createSupabaseServerClient } from "@/lib/supabase/server-app";
+import { canCurateGlobalPromotions, canManageApiKeys, getAdminActorContext } from "@/lib/auth/admin-context";
 import { DashboardAppShell } from "@/components/dashboard-app-shell";
 
 export const metadata: Metadata = {
@@ -13,5 +14,17 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     data: { user },
   } = supabase ? await supabase.auth.getUser() : { data: { user: null } };
 
-  return <DashboardAppShell userEmail={user?.email ?? null}>{children}</DashboardAppShell>;
+  const actor = user ? await getAdminActorContext() : null;
+  return (
+    <DashboardAppShell
+      userEmail={user?.email ?? null}
+      capabilities={{
+        canManageOrg: actor ? canManageApiKeys(actor.orgRole) : false,
+        canManageApiKeys: actor ? canManageApiKeys(actor.orgRole) : false,
+        canCurateGlobalPromotions: actor ? canCurateGlobalPromotions(actor.platformRole) : false,
+      }}
+    >
+      {children}
+    </DashboardAppShell>
+  );
 }

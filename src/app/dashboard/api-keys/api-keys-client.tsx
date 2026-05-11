@@ -30,12 +30,12 @@ function isAdminScope(scope: ApiScope): boolean {
 
 export function ApiKeysClient({
   initialKeys,
-  role,
+  orgRole,
 }: {
   initialKeys: KeyRow[];
-  role: string;
+  orgRole: string;
 }) {
-  const isOwner = role === "owner";
+  const isOwner = orgRole === "owner";
   const visibleScopes = ALL_API_KEY_SCOPES.filter((scope) => isOwner || !isAdminScope(scope));
 
   const [keys, setKeys] = useState(initialKeys);

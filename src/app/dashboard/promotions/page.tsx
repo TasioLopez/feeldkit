@@ -44,7 +44,7 @@ function proposalSubtitle(payload: Record<string, unknown>, targetTable: string)
 export default async function DashboardPromotionsPage() {
   const actor = await getAdminActorContext();
   const admin = getSupabaseServiceClient();
-  const isCurator = actor ? isPlatformAdmin(actor.role) : false;
+  const isCurator = actor ? isPlatformAdmin(actor.platformRole) : false;
   const proposals =
     admin && isCurator
       ? await listPromotionProposals(admin, { status: ["pending_global"], limit: 200 })
@@ -54,7 +54,7 @@ export default async function DashboardPromotionsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Promotion curator queue"
-        description="Approve or reject proposals staged for the global seed. Requires profile role platform_admin."
+        description="Approve or reject proposals staged for the global seed. Requires platform curator access."
       />
 
       <Reveal>
@@ -74,7 +74,7 @@ export default async function DashboardPromotionsPage() {
       ) : !isCurator ? (
         <EmptyState
           title="Curator access only"
-          description="Set your profile role to platform_admin in Supabase (profiles.role) to manage the global promotion queue."
+          description="Set profiles.platform_role to platform_admin or super_admin to manage the global promotion queue."
         />
       ) : proposals.length === 0 ? (
         <EmptyState title="Queue empty" description="No pending_global proposals right now." />

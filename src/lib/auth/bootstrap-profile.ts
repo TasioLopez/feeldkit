@@ -16,8 +16,27 @@ export async function ensureProfileForUser(user: User): Promise<void> {
     return;
   }
 
-  const { data: existing } = await admin.from("profiles").select("id").eq("user_id", user.id).maybeSingle();
-  if (existing) {
+  const { data: existing } = await admin
+    .from("profiles")
+    .select("id, organization_id, default_organization_id, role")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (existing?.default_organization_id || existing?.organization_id) {
+    const organizationId = (existing.default_organization_id as string | null) ?? (existing.organization_id as string | null);
+    if (!organizationId) {
+      return;
+    }
+    const legacyRole = existing.role === "admin" || existing.role === "viewer" ? existing.role : "owner";
+    await admin.from("organization_memberships").upsert(
+      {
+        organization_id: organizationId,
+        user_id: user.id,
+        role: legacyRole,
+        status: "active",
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "organization_id,user_id" },
+    );
     return;
   }
 
@@ -36,15 +55,37 @@ export async function ensureProfileForUser(user: User): Promise<void> {
     return;
   }
 
-  const { error: profileError } = await admin.from("profiles").insert({
+  const profilePayload = {
     user_id: user.id,
     email,
     organization_id: org.id,
+    default_organization_id: org.id,
     full_name: user.user_metadata?.full_name ?? null,
+    platform_role: "none",
     role: "owner",
-  });
+  };
+
+  const profileWrite = existing
+    ? admin.from("profiles").update(profilePayload).eq("user_id", user.id)
+    : admin.from("profiles").insert(profilePayload);
+  const { error: profileError } = await profileWrite;
 
   if (profileError) {
     console.error("ensureProfileForUser: profile insert failed", profileError);
+    return;
+  }
+
+  const { error: membershipError } = await admin.from("organization_memberships").upsert(
+    {
+      organization_id: org.id,
+      user_id: user.id,
+      role: "owner",
+      status: "active",
+    },
+    { onConflict: "organization_id,user_id" },
+  );
+
+  if (membershipError) {
+    console.error("ensureProfileForUser: membership upsert failed", membershipError);
   }
 }

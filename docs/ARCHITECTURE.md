@@ -126,4 +126,5 @@ Routes in `src/app/dashboard`:
 - API keys are hashed and validated via prefix lookup
 - scope checks per endpoint
 - rate-limit-ready middleware
-- Supabase Auth + role model for owner/admin/editor/viewer dashboard actions
+- Supabase Auth uses split RBAC: `profiles.platform_role` for platform curation and `organization_memberships.role` for org dashboard actions
+- The full role model and operational rules are documented in [`docs/RBAC.md`](RBAC.md)

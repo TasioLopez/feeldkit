@@ -12,7 +12,7 @@ export async function upsertOrgPolicyOverrideAction(formData: FormData): Promise
   const actor = await getAdminActorContext();
   if (!actor) return;
   try {
-    assertAdminRole(actor.role, "edit governance policy");
+    assertAdminRole(actor.orgRole, "edit governance policy");
   } catch {
     return;
   }
@@ -53,7 +53,7 @@ export async function upsertOrgFieldLockAction(formData: FormData): Promise<void
   const actor = await getAdminActorContext();
   if (!actor) return;
   try {
-    assertAdminRole(actor.role, "edit field locks");
+    assertAdminRole(actor.orgRole, "edit field locks");
   } catch {
     return;
   }
@@ -91,7 +91,7 @@ export async function upsertOrgPromotionSettingsAction(formData: FormData): Prom
   const actor = await getAdminActorContext();
   if (!actor) return;
   try {
-    assertAdminRole(actor.role, "edit promotion settings");
+    assertAdminRole(actor.orgRole, "edit promotion settings");
   } catch {
     return;
   }
