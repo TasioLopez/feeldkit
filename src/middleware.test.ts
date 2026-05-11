@@ -32,18 +32,21 @@ describe("middleware surface routing", () => {
     const { middleware } = await loadMiddleware();
     const response = await middleware(request("https://feeldkit.dev/dashboard", "feeldkit.dev"));
     expect(response.status).toBe(404);
+    expect(response.headers.get("x-middleware-rewrite")).toBe("https://feeldkit.dev/__feeldkit_not_found");
   });
 
   it("keeps /login admin-host only", async () => {
     const { middleware } = await loadMiddleware();
     const response = await middleware(request("https://feeldkit.dev/login", "feeldkit.dev"));
     expect(response.status).toBe(404);
+    expect(response.headers.get("x-middleware-rewrite")).toBe("https://feeldkit.dev/__feeldkit_not_found");
   });
 
   it("keeps admin auth callback admin-host only", async () => {
     const { middleware } = await loadMiddleware();
     const response = await middleware(request("https://feeldkit.dev/auth/callback", "feeldkit.dev"));
     expect(response.status).toBe(404);
+    expect(response.headers.get("x-middleware-rewrite")).toBe("https://feeldkit.dev/__feeldkit_not_found");
   });
 
   it("redirects admin-host root to admin login", async () => {

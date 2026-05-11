@@ -18,6 +18,8 @@ export default async function AppLoginPage({
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
   const params = await searchParams;
+  const appSiteUrl = env.APP_SITE_URL ?? (env.NODE_ENV === "production" ? undefined : env.NEXT_PUBLIC_SITE_URL);
+  const adminHref = env.ADMIN_SITE_URL ? `${env.ADMIN_SITE_URL.replace(/\/$/, "")}/login` : "/login";
 
   return (
     <div className="premium-surface relative flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
@@ -33,21 +35,35 @@ export default async function AppLoginPage({
           <Badge variant="glow" className="mx-auto w-fit sm:mx-0">
             Workspace access
           </Badge>
-          <CardTitle className="text-2xl">Sign in to FeeldKit</CardTitle>
-          <CardDescription>Use your email to open your mapping workspace.</CardDescription>
+          <CardTitle className="text-2xl">Continue to your workspace</CardTitle>
+          <CardDescription>New here? We’ll create your workspace the first time you continue.</CardDescription>
         </CardHeader>
         <CardContent>
           <LoginForm
             nextPath={params.next}
             error={params.error}
             supabaseConfigured={isSupabaseConfigured()}
-            siteUrl={env.APP_SITE_URL ?? env.NEXT_PUBLIC_SITE_URL}
+            siteUrl={appSiteUrl}
+            siteUrlMissingMessage={
+              !appSiteUrl && env.NODE_ENV === "production"
+                ? "APP_SITE_URL must be set to https://feeldkit.dev for workspace sign-in."
+                : undefined
+            }
             callbackPath="/auth/app/callback"
             defaultNextPath="/app"
             emailHelpText="Use the email tied to your FeeldKit workspace."
-            securityNote="This login opens your user workspace. Operator tools remain restricted to the admin dashboard."
+            securityNote="Operator tools remain restricted to admin.feeldkit.dev."
+            buttonLabel="Continue with email"
+            successMessage="Open the link we sent to continue to your workspace."
+            shouldCreateUser
           />
           <p className="mt-6 text-center text-sm text-muted-foreground">
+            Looking for the operator console?{" "}
+            <Link href={adminHref} className="font-medium text-primary hover:underline">
+              Admin sign in
+            </Link>
+          </p>
+          <p className="mt-2 text-center text-xs text-muted-foreground">
             <Link href="/" className="font-medium text-primary hover:underline">
               Back to home
             </Link>

@@ -13,21 +13,49 @@ type Props = {
   error?: string;
   supabaseConfigured: boolean;
   siteUrl?: string;
+  siteUrlMissingMessage?: string;
   callbackPath?: string;
   defaultNextPath?: string;
   emailHelpText?: string;
   securityNote?: string;
+  buttonLabel?: string;
+  successMessage?: string;
+  shouldCreateUser?: boolean;
 };
+
+export function buildMagicLinkRedirect(args: {
+  origin: string;
+  callbackPath: string;
+  nextPath?: string;
+  defaultNextPath: string;
+}): string {
+  const safeNext = args.nextPath?.startsWith("/") ? args.nextPath : args.defaultNextPath;
+  return `${args.origin.replace(/\/$/, "")}${args.callbackPath}?next=${encodeURIComponent(safeNext)}`;
+}
+
+export function createMagicLinkOptions(args: {
+  redirectTo: string;
+  shouldCreateUser: boolean;
+}): { emailRedirectTo: string; shouldCreateUser: boolean } {
+  return {
+    emailRedirectTo: args.redirectTo,
+    shouldCreateUser: args.shouldCreateUser,
+  };
+}
 
 export function LoginForm({
   nextPath,
   error,
   supabaseConfigured,
   siteUrl,
+  siteUrlMissingMessage,
   callbackPath = "/auth/callback",
   defaultNextPath = "/dashboard",
   emailHelpText = "Use the email tied to your organization admin profile.",
   securityNote = "This login only grants access to the admin dashboard for authorized organization users.",
+  buttonLabel = "Send magic link",
+  successMessage = "Open the link we sent to finish signing in. You can close this tab after you are done.",
+  shouldCreateUser = false,
 }: Props) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
@@ -52,11 +80,10 @@ export function LoginForm({
     setStatus("sending");
     setMessage(null);
     const origin = siteUrl?.replace(/\/$/, "") ?? (typeof window !== "undefined" ? window.location.origin : "");
-    const safeNext = nextPath?.startsWith("/") ? nextPath : defaultNextPath;
-    const redirectTo = `${origin}${callbackPath}?next=${encodeURIComponent(safeNext)}`;
+    const redirectTo = buildMagicLinkRedirect({ origin, callbackPath, nextPath, defaultNextPath });
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options: { emailRedirectTo: redirectTo },
+      options: createMagicLinkOptions({ redirectTo, shouldCreateUser }),
     });
     if (otpError) {
       setStatus("error");
@@ -76,6 +103,15 @@ export function LoginForm({
             ? "Set NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY to enable admin sign-in."
             : "Unable to create Supabase client."}
         </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (siteUrlMissingMessage) {
+    return (
+      <Alert variant="warning" className="mt-2">
+        <AlertTitle>Configuration</AlertTitle>
+        <AlertDescription>{siteUrlMissingMessage}</AlertDescription>
       </Alert>
     );
   }
@@ -117,7 +153,7 @@ export function LoginForm({
             Sending…
           </>
         ) : (
-          "Send magic link"
+          buttonLabel
         )}
       </Button>
       <div className="rounded-lg border border-stroke-soft bg-surface-panel px-3 py-2 text-xs text-muted-foreground">
@@ -130,7 +166,7 @@ export function LoginForm({
       {status === "sent" ? (
         <Alert variant="default" className="border-primary/30 bg-primary/5">
           <AlertTitle>Check your inbox</AlertTitle>
-          <AlertDescription>Open the link we sent to finish signing in. You can close this tab after you are done.</AlertDescription>
+          <AlertDescription>{successMessage}</AlertDescription>
         </Alert>
       ) : null}
       {message && status !== "sent" ? <p className="text-sm text-muted-foreground">{message}</p> : null}

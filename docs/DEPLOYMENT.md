@@ -12,8 +12,8 @@ Use separate Supabase projects (or branches) for **development**, **staging**, a
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | All | Public anon key (browser + middleware) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only | Bypasses RLS for API key verification, seed scripts, profile bootstrap |
 | `NEXT_PUBLIC_SITE_URL` | All | OAuth/magic-link redirect base (must match deployed URL) |
-| `ADMIN_SITE_URL` | Server + login rendering | Canonical admin surface URL, e.g. `https://admin.feeldkit.dev` |
-| `APP_SITE_URL` | Server + login rendering | Canonical user workspace URL, e.g. `https://feeldkit.dev` |
+| `ADMIN_SITE_URL` | Server + login rendering | Canonical admin surface URL, e.g. `https://admin.feeldkit.dev`; required in production so admin magic links use the admin callback |
+| `APP_SITE_URL` | Server + login rendering | Canonical user workspace URL, e.g. `https://feeldkit.dev`; required in production so workspace magic links use `/auth/app/callback` on the public host |
 | `ADMIN_ALLOWED_EMAILS` | Server only | Comma-separated exact emails allowed to access admin login/callback; required in production unless domains are set |
 | `ADMIN_ALLOWED_EMAIL_DOMAINS` | Server only | Comma-separated email domains allowed to access admin login/callback; required in production unless emails are set |
 | `OPENAI_API_KEY` | Server only | Optional AI enrichment provider key (used for proposal generation, never auto-applies) |
@@ -65,6 +65,8 @@ https://feeldkit.dev/auth/app/callback
 http://localhost:3000/auth/callback
 http://localhost:3000/auth/app/callback
 ```
+
+If `APP_SITE_URL` is missing in production, workspace sign-in is intentionally blocked with a configuration warning so app magic links cannot fall back to the admin host.
 
 ## Phase 6 - Developer Productization
 

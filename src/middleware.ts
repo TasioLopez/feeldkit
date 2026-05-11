@@ -25,6 +25,12 @@ function redirectToLogin(request: NextRequest, pathname: string): NextResponse {
   return NextResponse.redirect(url);
 }
 
+function themedNotFound(request: NextRequest): NextResponse {
+  const url = request.nextUrl.clone();
+  url.pathname = "/__feeldkit_not_found";
+  return NextResponse.rewrite(url, { status: 404 });
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const adminHost = isAdminHost(request);
@@ -39,7 +45,7 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith("/dashboard") || pathname === "/login" || pathname === "/auth/callback") {
     if (!adminHost) {
-      return new NextResponse(null, { status: 404 });
+      return themedNotFound(request);
     }
   }
 
@@ -47,12 +53,12 @@ export async function middleware(request: NextRequest) {
     if (env.APP_SITE_URL) {
       return NextResponse.redirect(new URL(pathname, env.APP_SITE_URL));
     }
-    return new NextResponse(null, { status: 404 });
+    return themedNotFound(request);
   }
 
   if (pathname.startsWith("/app") || pathname.startsWith("/auth/app")) {
     if (!publicAppHost) {
-      return new NextResponse(null, { status: 404 });
+      return themedNotFound(request);
     }
   }
 

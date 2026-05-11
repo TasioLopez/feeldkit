@@ -29,9 +29,9 @@ These are intentionally independent. A platform admin does not automatically own
 
 ## Bootstrap And Login
 
-Admin dashboard login at `admin.feeldkit.dev/login` is restricted by `ADMIN_ALLOWED_EMAILS` or `ADMIN_ALLOWED_EMAIL_DOMAINS`. In production, one of those allowlists must be set; without it, callback authorization denies dashboard access.
+Admin dashboard login at `admin.feeldkit.dev/login` is restricted by `ADMIN_ALLOWED_EMAILS` or `ADMIN_ALLOWED_EMAIL_DOMAINS`. In production, one of those allowlists must be set; without it, callback authorization denies dashboard access. Admin login is existing-user-only and should not create arbitrary Supabase auth users.
 
-User workspace login at `feeldkit.dev/app/login` is separate from the admin allowlist. It is for normal workspace users and redirects through `/auth/app/callback`.
+User workspace login at `feeldkit.dev/app/login` is separate from the admin allowlist. It is for normal workspace users, supports first-time self-serve signup, and redirects through `/auth/app/callback` on the public host.
 
 `ensureAppProfileForUser()` creates:
 
