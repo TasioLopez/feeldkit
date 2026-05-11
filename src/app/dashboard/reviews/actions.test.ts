@@ -10,6 +10,9 @@ vi.mock("@/lib/auth/admin-context", () => ({
     userId: "user-1",
     organizationId: "org-1",
     role: "owner",
+    orgRole: "owner",
+    platformRole: "none",
+    membershipId: "membership-1",
     email: "a@b.com",
   })),
 }));

@@ -117,6 +117,12 @@ Routes in `src/app/dashboard`:
 - industry interoperability view for edge review and translation confidence
 - operational surfaces should prioritize review-by-exception and bulk decisions
 
+## User Workspace
+Routes in `src/app/app` are the user-facing workspace on the public host:
+- `/app/login` and `/auth/app/callback` provide a non-admin magic-link flow.
+- `/app` exposes workspace setup, developer guidance, API keys, and settings.
+- platform-only operator tools remain on `admin.feeldkit.dev/dashboard`.
+
 ## Versioning + Imports
 `scripts/seed.ts`, `scripts/import-pack.ts`, `scripts/update-pack.ts`, `scripts/export-pack.ts` provide idempotent seed/import flow and machine-readable snapshots.
 - `scripts/import-full-v1.ts` should be treated as the canonical high-coverage

@@ -12,6 +12,8 @@ Use separate Supabase projects (or branches) for **development**, **staging**, a
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | All | Public anon key (browser + middleware) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only | Bypasses RLS for API key verification, seed scripts, profile bootstrap |
 | `NEXT_PUBLIC_SITE_URL` | All | OAuth/magic-link redirect base (must match deployed URL) |
+| `ADMIN_SITE_URL` | Server + login rendering | Canonical admin surface URL, e.g. `https://admin.feeldkit.dev` |
+| `APP_SITE_URL` | Server + login rendering | Canonical user workspace URL, e.g. `https://feeldkit.dev` |
 | `ADMIN_ALLOWED_EMAILS` | Server only | Comma-separated exact emails allowed to access admin login/callback; required in production unless domains are set |
 | `ADMIN_ALLOWED_EMAIL_DOMAINS` | Server only | Comma-separated email domains allowed to access admin login/callback; required in production unless emails are set |
 | `OPENAI_API_KEY` | Server only | Optional AI enrichment provider key (used for proposal generation, never auto-applies) |
@@ -47,10 +49,22 @@ If any key was ever committed, shared, or present in public artifacts, rotate it
 ## DNS and surfaces (recommended)
 
 - **Marketing:** `www.feeldkit.dev` or apex `feeldkit.dev`
+- **User app:** `feeldkit.dev/app` with `/app/login` and `/auth/app/callback`
 - **API:** same app, path `/api/v1` — optionally map `api.feeldkit.dev` to the same deployment
-- **Admin:** optionally `admin.feeldkit.dev` with `ADMIN_HOST` set
+- **Admin:** `admin.feeldkit.dev` with `ADMIN_HOST` set; `/login`, `/auth/callback`, and `/dashboard/*` stay admin-host-only
 
 You do not need two registrable domains; subdomains on one domain are enough.
+
+## Supabase Auth Redirect URLs
+
+Allow both production callbacks and local equivalents:
+
+```text
+https://admin.feeldkit.dev/auth/callback
+https://feeldkit.dev/auth/app/callback
+http://localhost:3000/auth/callback
+http://localhost:3000/auth/app/callback
+```
 
 ## Phase 6 - Developer Productization
 

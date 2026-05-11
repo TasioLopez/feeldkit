@@ -59,7 +59,7 @@ export default async function LoginPage({
               nextPath={params.next}
               error={params.error}
               supabaseConfigured={isSupabaseConfigured()}
-              siteUrl={env.NEXT_PUBLIC_SITE_URL}
+              siteUrl={env.ADMIN_SITE_URL ?? env.NEXT_PUBLIC_SITE_URL}
             />
             <p className="mt-6 text-center text-sm text-muted-foreground">
               <Link href="/" className="font-medium text-primary hover:underline">

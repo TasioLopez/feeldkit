@@ -35,6 +35,12 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
+  if (pathname.startsWith("/app") && pathname !== "/app/login" && !user) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/app/login";
+    url.searchParams.set("next", pathname);
+    return NextResponse.redirect(url);
+  }
 
   return supabaseResponse;
 }

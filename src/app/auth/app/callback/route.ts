@@ -1,24 +1,23 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { isAdminEmailAllowed } from "@/lib/auth/admin-allowlist";
-import { ensureAdminProfileForUser } from "@/lib/auth/bootstrap-profile";
+import { ensureAppProfileForUser } from "@/lib/auth/bootstrap-profile";
 import { env, isSupabaseConfigured } from "@/lib/config/env";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const origin = (env.ADMIN_SITE_URL ?? env.NEXT_PUBLIC_SITE_URL ?? url.origin).replace(/\/$/, "");
+  const origin = (env.APP_SITE_URL ?? env.NEXT_PUBLIC_SITE_URL ?? url.origin).replace(/\/$/, "");
 
   if (!isSupabaseConfigured()) {
-    return NextResponse.redirect(new URL("/login?error=missing_supabase", origin));
+    return NextResponse.redirect(new URL("/app/login?error=missing_supabase", origin));
   }
 
   const code = url.searchParams.get("code");
-  const nextParam = url.searchParams.get("next") ?? "/dashboard";
-  const nextPath = nextParam.startsWith("/") ? nextParam : "/dashboard";
+  const nextParam = url.searchParams.get("next") ?? "/app";
+  const nextPath = nextParam === "/app" || nextParam.startsWith("/app/") ? nextParam : "/app";
 
   if (!code) {
-    return NextResponse.redirect(new URL("/login?error=missing_code", origin));
+    return NextResponse.redirect(new URL("/app/login?error=missing_code", origin));
   }
 
   const cookieStore = await cookies();
@@ -37,15 +36,10 @@ export async function GET(request: Request) {
 
   const { error, data } = await supabase.auth.exchangeCodeForSession(code);
   if (error || !data.user) {
-    return NextResponse.redirect(new URL("/login?error=auth", origin));
+    return NextResponse.redirect(new URL("/app/login?error=auth", origin));
   }
 
-  if (!isAdminEmailAllowed(data.user.email)) {
-    await supabase.auth.signOut();
-    return NextResponse.redirect(new URL("/login?error=unauthorized", origin));
-  }
-
-  await ensureAdminProfileForUser(data.user);
+  await ensureAppProfileForUser(data.user);
 
   return NextResponse.redirect(new URL(nextPath, origin));
 }

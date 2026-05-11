@@ -6,13 +6,9 @@ import { getSupabaseServiceClient } from "@/lib/supabase/server";
  * Ensures a `profiles` row and default `organizations` exist for a new auth user.
  * Uses service role (server-only) to bypass RLS.
  */
-export async function ensureProfileForUser(user: User): Promise<void> {
+async function ensureProfileAndMembershipForUser(user: User): Promise<void> {
   const admin = getSupabaseServiceClient();
   if (!admin || !user.id) {
-    return;
-  }
-  if (!isAdminEmailAllowed(user.email)) {
-    console.warn("ensureProfileForUser: denied bootstrap for non-allowlisted email");
     return;
   }
 
@@ -51,7 +47,7 @@ export async function ensureProfileForUser(user: User): Promise<void> {
     .single();
 
   if (orgError || !org) {
-    console.error("ensureProfileForUser: organization insert failed", orgError);
+    console.error("ensureProfileAndMembershipForUser: organization insert failed", orgError);
     return;
   }
 
@@ -71,7 +67,7 @@ export async function ensureProfileForUser(user: User): Promise<void> {
   const { error: profileError } = await profileWrite;
 
   if (profileError) {
-    console.error("ensureProfileForUser: profile insert failed", profileError);
+    console.error("ensureProfileAndMembershipForUser: profile insert failed", profileError);
     return;
   }
 
@@ -86,6 +82,23 @@ export async function ensureProfileForUser(user: User): Promise<void> {
   );
 
   if (membershipError) {
-    console.error("ensureProfileForUser: membership upsert failed", membershipError);
+    console.error("ensureProfileAndMembershipForUser: membership upsert failed", membershipError);
   }
+}
+
+export async function ensureAdminProfileForUser(user: User): Promise<void> {
+  if (!isAdminEmailAllowed(user.email)) {
+    console.warn("ensureAdminProfileForUser: denied bootstrap for non-allowlisted email");
+    return;
+  }
+  await ensureProfileAndMembershipForUser(user);
+}
+
+export async function ensureAppProfileForUser(user: User): Promise<void> {
+  await ensureProfileAndMembershipForUser(user);
+}
+
+/** @deprecated Use ensureAdminProfileForUser or ensureAppProfileForUser. */
+export async function ensureProfileForUser(user: User): Promise<void> {
+  await ensureAdminProfileForUser(user);
 }

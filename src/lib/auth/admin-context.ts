@@ -5,7 +5,7 @@ import { isSupabaseConfigured } from "@/lib/config/env";
 export type PlatformRole = "none" | "platform_admin" | "super_admin";
 export type OrgRole = "owner" | "admin" | "editor" | "viewer";
 
-export type AdminActorContext = {
+export type ActorContext = {
   userId: string;
   organizationId: string;
   membershipId: string | null;
@@ -15,6 +15,8 @@ export type AdminActorContext = {
   platformRole: PlatformRole;
   email: string | null;
 };
+
+export type AdminActorContext = ActorContext;
 
 const ORG_ROLE_ORDER: Record<OrgRole, number> = {
   viewer: 0,
@@ -33,7 +35,7 @@ function toOrgRole(value: unknown): OrgRole {
     : "viewer";
 }
 
-export async function getAdminActorContext(): Promise<AdminActorContext | null> {
+export async function getActorContext(): Promise<ActorContext | null> {
   if (!isSupabaseConfigured()) {
     return null;
   }
@@ -120,6 +122,10 @@ export async function getAdminActorContext(): Promise<AdminActorContext | null> 
     platformRole: toPlatformRole(profile.platform_role),
     email: (profile.email as string | null) ?? user.email ?? null,
   };
+}
+
+export async function getAdminActorContext(): Promise<AdminActorContext | null> {
+  return getActorContext();
 }
 
 export function hasOrgRole(role: OrgRole | string | null | undefined, minimum: OrgRole): boolean {

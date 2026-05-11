@@ -123,6 +123,7 @@ export async function createApiKeyAction(input: {
     return { error: error.message };
   }
   revalidatePath("/dashboard/api-keys");
+  revalidatePath("/app/api-keys");
   return { plaintextKey: fullKey, scopes: requestedScopes };
 }
 
@@ -147,5 +148,6 @@ export async function revokeApiKeyAction(id: string): Promise<{ error?: string }
     return { error: error.message };
   }
   revalidatePath("/dashboard/api-keys");
+  revalidatePath("/app/api-keys");
   return {};
 }

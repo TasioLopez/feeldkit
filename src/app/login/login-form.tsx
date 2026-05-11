@@ -13,9 +13,22 @@ type Props = {
   error?: string;
   supabaseConfigured: boolean;
   siteUrl?: string;
+  callbackPath?: string;
+  defaultNextPath?: string;
+  emailHelpText?: string;
+  securityNote?: string;
 };
 
-export function LoginForm({ nextPath, error, supabaseConfigured, siteUrl }: Props) {
+export function LoginForm({
+  nextPath,
+  error,
+  supabaseConfigured,
+  siteUrl,
+  callbackPath = "/auth/callback",
+  defaultNextPath = "/dashboard",
+  emailHelpText = "Use the email tied to your organization admin profile.",
+  securityNote = "This login only grants access to the admin dashboard for authorized organization users.",
+}: Props) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -39,8 +52,8 @@ export function LoginForm({ nextPath, error, supabaseConfigured, siteUrl }: Prop
     setStatus("sending");
     setMessage(null);
     const origin = siteUrl?.replace(/\/$/, "") ?? (typeof window !== "undefined" ? window.location.origin : "");
-    const safeNext = nextPath?.startsWith("/") ? nextPath : "/dashboard";
-    const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(safeNext)}`;
+    const safeNext = nextPath?.startsWith("/") ? nextPath : defaultNextPath;
+    const redirectTo = `${origin}${callbackPath}?next=${encodeURIComponent(safeNext)}`;
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: { emailRedirectTo: redirectTo },
@@ -77,7 +90,9 @@ export function LoginForm({ nextPath, error, supabaseConfigured, siteUrl }: Prop
             {error === "missing_code" && "Missing authorization code."}
             {error === "missing_supabase" && "Server is missing Supabase configuration."}
             {error === "unauthorized" && "This account is not authorized for admin access."}
-            {!["auth", "missing_code", "missing_supabase", "unauthorized"].includes(error) && `Error: ${error}`}
+            {error === "profile" && "Your profile or organization membership is not ready."}
+            {error === "insufficient_access" && "This account does not have access to this surface."}
+            {!["auth", "missing_code", "missing_supabase", "unauthorized", "profile", "insufficient_access"].includes(error) && `Error: ${error}`}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -93,7 +108,7 @@ export function LoginForm({ nextPath, error, supabaseConfigured, siteUrl }: Prop
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@company.com"
         />
-        <p className="text-xs text-muted-foreground">Use the email tied to your organization admin profile.</p>
+        <p className="text-xs text-muted-foreground">{emailHelpText}</p>
       </div>
       <Button type="submit" variant="brand" className="w-full" disabled={status === "sending"}>
         {status === "sending" ? (
@@ -110,7 +125,7 @@ export function LoginForm({ nextPath, error, supabaseConfigured, siteUrl }: Prop
           <ShieldCheck className="size-3.5 text-brand-strong" />
           Security note
         </span>{" "}
-        This login only grants access to the admin dashboard for authorized organization users.
+        {securityNote}
       </div>
       {status === "sent" ? (
         <Alert variant="default" className="border-primary/30 bg-primary/5">
