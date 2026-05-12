@@ -5,9 +5,9 @@ describe("normalize service", () => {
   it("normalizes country aliases", async () => {
     const result = await normalizeOne({ field_key: "countries", value: "NL" });
     expect(result.status).toBe("matched");
-    expect(result.match?.key).toBe("netherlands");
+    expect(result.match?.key).toBe("nl");
     expect(result.explain.version).toBe("1");
-    expect(result.explain.winner?.key).toBe("netherlands");
+    expect(result.explain.winner?.key).toBe("nl");
     expect(result.explain.policy.domain).toBe("geo");
     expect(typeof result.trace.prior_decision_count).toBe("number");
   });

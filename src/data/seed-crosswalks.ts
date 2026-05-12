@@ -6,27 +6,11 @@ export interface SeedCrosswalk {
   crosswalkType: string;
   confidence: number;
   source?: string;
+  /** Stored on `field_crosswalks.metadata` (e.g. `{ primary: true }` for 1:N official language / timezone rows). */
+  metadata?: Record<string, unknown>;
 }
 
 export const seedCrosswalks: SeedCrosswalk[] = [
-  {
-    fromFieldTypeKey: "countries",
-    fromValueKey: "netherlands",
-    toFieldTypeKey: "currencies",
-    toValueKey: "eur",
-    crosswalkType: "country_default_currency",
-    confidence: 0.99,
-    source: "seed",
-  },
-  {
-    fromFieldTypeKey: "countries",
-    fromValueKey: "netherlands",
-    toFieldTypeKey: "languages",
-    toValueKey: "nl",
-    crosswalkType: "country_official_language",
-    confidence: 0.99,
-    source: "seed",
-  },
   {
     fromFieldTypeKey: "normalized_job_titles",
     fromValueKey: "vp-engineering",

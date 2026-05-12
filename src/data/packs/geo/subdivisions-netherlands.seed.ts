@@ -10,8 +10,8 @@ export const geoSubdivisionsNlSeed: SeedPack = {
       key: "subdivisions",
       name: "Subdivisions",
       values: [
-        { key: "nl-zuid-holland", label: "South Holland", aliases: ["Zuid Holland"], metadata: { country_iso2: "NL", iso3166_2: "NL-ZH" } },
-        { key: "nl-noord-holland", label: "North Holland", aliases: ["Noord Holland"], metadata: { country_iso2: "NL", iso3166_2: "NL-NH" } },
+        { key: "nl_zh", label: "South Holland", aliases: ["Zuid Holland", "nl-zuid-holland"], metadata: { country_iso2: "NL", iso3166_2: "NL-ZH" } },
+        { key: "nl_nh", label: "North Holland", aliases: ["Noord Holland", "nl-noord-holland"], metadata: { country_iso2: "NL", iso3166_2: "NL-NH" } },
       ],
     },
   ],

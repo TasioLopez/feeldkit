@@ -25,34 +25,28 @@ execution phases, and mapping intelligence strategy are defined in:
 16. Free email providers
 17. Role-based email local-parts
 
+### Geo (full V1)
+
+Shipped: ISO-3166-1 countries (keys = lowercase `iso2`), ISO-3166-2 subdivisions, UN region/subregion metadata on country rows, **`geo_continents`** with `country_in_continent` crosswalks, curated region groups (EU, EEA, DACH, OECD, …) with `country_in_region_group` crosswalks, **`standards_telephony`** (`e164_country_calling_codes` + `country_uses_calling_code`), multi official language / multi timezone defaults (v2 JSON + crosswalk `metadata.primary`), lightweight postal regex and address templates. Operator reference: [GEO_PACK.md](GEO_PACK.md).
+
 ## V1.5 Packs
-1. Full ISO-3166-1 countries
-2. ISO-3166-2 subdivisions
-3. Metro areas
-4. Calling codes + phone metadata
-5. Postal code regex by country
-6. Address format templates by country
-7. Country-default currency mapping
-8. Country-official language mapping
-9. Country-IANA timezone mapping
-10. Continents + UN region/sub-region groups
-11. EU/EEA/Schengen/G7/G20/OECD flags
-12. ISO4217 currencies
-13. ISO639 languages
-14. IANA timezone list
-15. BCP47 locales
-16. NAICS 2022 full hierarchy
-17. SIC hierarchy
-18. ISIC Rev.4
-19. Industry crosswalks
-20. Disposable email domains
-21. ESP/MX fingerprints
-22. Public Suffix List
-23. Social URL patterns and handle validators
-24. UTM conventions
-25. Top 500 technology/vendor normalization map
-26. Intent taxonomy
-27. Event taxonomy
+1. Metro areas
+2. ISO4217 currencies (full coverage beyond seed)
+3. ISO639 languages (full coverage beyond seed)
+4. IANA timezone list (full coverage beyond seed)
+5. BCP47 locales
+6. NAICS 2022 full hierarchy
+7. SIC hierarchy
+8. ISIC Rev.4
+9. Industry crosswalks
+10. Disposable email domains
+11. ESP/MX fingerprints
+12. Public Suffix List
+13. Social URL patterns and handle validators
+14. UTM conventions
+15. Top 500 technology/vendor normalization map
+16. Intent taxonomy
+17. Event taxonomy
 
 ## Future Packs
 1. Cities

@@ -3,6 +3,10 @@ import { resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { seedPacks } from "../src/data/packs/index";
 import { seedCrosswalks } from "../src/data/seed-crosswalks";
+import { buildCallingCodeCrosswalksFromPacks } from "../src/lib/ingestion/build-calling-code-crosswalks";
+import { buildCountryStandardsCrosswalksFromPacks } from "../src/lib/ingestion/build-country-standards-crosswalks";
+import { buildGeoContinentCrosswalksFromPacks } from "../src/lib/ingestion/build-geo-continent-crosswalks";
+import { buildGeoRegionGroupCrosswalksFromPacks } from "../src/lib/ingestion/build-geo-region-group-crosswalks";
 import { ingestCrosswalksFromSeed, ingestSeedBundle, mergePacks } from "../src/lib/ingestion/ingest-seed-bundle";
 
 async function seedSupabase() {
@@ -14,7 +18,18 @@ async function seedSupabase() {
   }
   const admin = createClient(url, key);
   const summary = await ingestSeedBundle(admin, seedPacks, { sourceKeyPrefix: "seed", forceVersionSnapshot: false });
-  const crosswalks = await ingestCrosswalksFromSeed(admin, seedCrosswalks, "seed-crosswalks");
+  const merged = mergePacks(seedPacks);
+  const crosswalks = await ingestCrosswalksFromSeed(
+    admin,
+    [
+      ...seedCrosswalks,
+      ...buildCountryStandardsCrosswalksFromPacks([...merged.values()]),
+      ...buildGeoRegionGroupCrosswalksFromPacks(),
+      ...buildGeoContinentCrosswalksFromPacks([...merged.values()]),
+      ...buildCallingCodeCrosswalksFromPacks([...merged.values()]),
+    ],
+    "seed-crosswalks",
+  );
   console.log(
     `Supabase seed completed. packs=${summary.packs} field_types=${summary.fieldTypes} values=${summary.fieldValues} aliases=${summary.aliases} crosswalks=${crosswalks.inserted}`,
   );

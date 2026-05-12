@@ -1,6 +1,8 @@
 import type { SeedPack } from "@/data/packs/types";
+import { geoContinentsSeed } from "@/data/packs/geo/continents.seed";
 import { geoCountriesSeed } from "@/data/packs/geo/countries.seed";
 import { geoSubdivisionsNlSeed } from "@/data/packs/geo/subdivisions-netherlands.seed";
+import { geoRegionGroupsSeed } from "@/data/packs/geo/region-groups.seed";
 import { currenciesSeed } from "@/data/packs/standards/currencies.seed";
 import { languagesSeed } from "@/data/packs/standards/languages.seed";
 import { timezonesSeed } from "@/data/packs/standards/timezones.seed";
@@ -24,7 +26,9 @@ import { eventLifecycleStatesSeed } from "@/data/packs/events/lifecycle-states.s
 
 export const seedPacks: SeedPack[] = [
   geoCountriesSeed,
+  geoContinentsSeed,
   geoSubdivisionsNlSeed,
+  geoRegionGroupsSeed,
   currenciesSeed,
   languagesSeed,
   timezonesSeed,

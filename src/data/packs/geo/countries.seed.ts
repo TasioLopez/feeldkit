@@ -10,8 +10,8 @@ export const geoCountriesSeed: SeedPack = {
       key: "countries",
       name: "Countries",
       values: [
-        { key: "netherlands", label: "Netherlands", aliases: ["NL", "Nederland", "Holland"], metadata: { iso2: "NL", iso3: "NLD" } },
-        { key: "canada", label: "Canada", aliases: ["CA"], metadata: { iso2: "CA", iso3: "CAN" } },
+        { key: "nl", label: "Netherlands", aliases: ["NL", "Nederland", "Holland", "netherlands"], metadata: { iso2: "NL", iso3: "NLD", region: "Europe", un_region_slug: "europe" } },
+        { key: "ca", label: "Canada", aliases: ["CA", "canada"], metadata: { iso2: "CA", iso3: "CAN", region: "Americas", un_region_slug: "americas" } },
       ],
     },
   ],

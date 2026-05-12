@@ -7,7 +7,10 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { seedCrosswalks } from "../src/data/seed-crosswalks";
+import { buildCallingCodeCrosswalksFromPacks } from "../src/lib/ingestion/build-calling-code-crosswalks";
 import { buildCountryStandardsCrosswalksFromPacks } from "../src/lib/ingestion/build-country-standards-crosswalks";
+import { buildGeoContinentCrosswalksFromPacks } from "../src/lib/ingestion/build-geo-continent-crosswalks";
+import { buildGeoRegionGroupCrosswalksFromPacks } from "../src/lib/ingestion/build-geo-region-group-crosswalks";
 import { mergePacks } from "../src/lib/ingestion/ingest-seed-bundle";
 import { buildFullV1Packs } from "./sources/index";
 
@@ -30,9 +33,13 @@ async function main() {
   const packs = await buildFullV1Packs();
   const merged = mergePacks(packs);
   const index = valueKeyIndex(merged);
-  const dynamic = buildCountryStandardsCrosswalksFromPacks(packs);
+  const dynamic = [
+    ...buildCountryStandardsCrosswalksFromPacks(packs),
+    ...buildGeoRegionGroupCrosswalksFromPacks(),
+    ...buildGeoContinentCrosswalksFromPacks(packs),
+    ...buildCallingCodeCrosswalksFromPacks(packs),
+  ];
   const all = [...seedCrosswalks, ...dynamic];
-
   const missingFrom: typeof all = [];
   const missingTo: typeof all = [];
   for (const cw of all) {

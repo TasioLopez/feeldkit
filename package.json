@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",
+    "generate:geo": "node --import tsx ./scripts/generate-geo-assets.ts",
     "seed": "node --import tsx ./scripts/seed.ts",
     "import:pack": "node --import tsx ./scripts/import-pack.ts",
     "import:full-v1": "node --import tsx ./scripts/import-full-v1.ts",

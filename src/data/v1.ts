@@ -1,6 +1,15 @@
 import { normalizeText } from "@/lib/matching/normalize-text";
 import type { FieldAlias, FieldCrosswalk, FieldPack, FieldType, FieldValue } from "@/lib/domain/types";
 import { buildCanonicalRefV1 } from "@/lib/domain/canonical-ref";
+import type { SeedPack } from "@/data/packs/types";
+import type { SeedCrosswalk } from "@/data/seed-crosswalks";
+import geoBundle from "./generated/geo-bundle.json";
+import { buildCallingCodeCrosswalksFromPacks } from "@/lib/ingestion/build-calling-code-crosswalks";
+import { buildCountryStandardsCrosswalksFromPacks } from "@/lib/ingestion/build-country-standards-crosswalks";
+import { buildGeoContinentCrosswalksFromPacks } from "@/lib/ingestion/build-geo-continent-crosswalks";
+import { buildGeoRegionGroupCrosswalksFromPacks } from "@/lib/ingestion/build-geo-region-group-crosswalks";
+import { loadCountryDefaultsV2 } from "@/lib/ingestion/country-defaults-data";
+import { ianaTimezoneValueKey } from "@/lib/geo/iana-timezone-key";
 
 const pack = (overrides: Partial<FieldPack>): FieldPack => ({
   id: crypto.randomUUID(),
@@ -99,6 +108,12 @@ const standardsTimezonesPack = pack({
   description: "IANA time zones.",
   category: "standards",
 });
+const standardsTelephonyPack = pack({
+  key: "standards_telephony",
+  name: "Telephony",
+  description: "E.164 country calling prefixes.",
+  category: "standards",
+});
 const emailPack = pack({
   key: "email_domain",
   name: "Email and Domain",
@@ -125,6 +140,7 @@ export const fieldPacks: FieldPack[] = [
   standardsCurrenciesPack,
   standardsLanguagesPack,
   standardsTimezonesPack,
+  standardsTelephonyPack,
   emailPack,
   industryPack,
   techPack,
@@ -137,6 +153,18 @@ const countriesType = fieldType(geoPack.id, {
   supportsCrosswalks: true,
 });
 const subdivisionsType = fieldType(geoPack.id, { key: "subdivisions", name: "Subdivisions", kind: "reference", supportsHierarchy: true });
+const geoRegionGroupsType = fieldType(geoPack.id, {
+  key: "geo_region_groups",
+  name: "Geo region groups",
+  kind: "reference",
+  supportsCrosswalks: true,
+});
+const geoContinentsType = fieldType(geoPack.id, {
+  key: "geo_continents",
+  name: "Geo continents (UN macro regions)",
+  kind: "reference",
+  supportsCrosswalks: true,
+});
 const currenciesType = fieldType(standardsCurrenciesPack.id, { key: "currencies", name: "Currencies", kind: "reference" });
 const languagesType = fieldType(standardsLanguagesPack.id, {
   key: "languages",
@@ -145,6 +173,12 @@ const languagesType = fieldType(standardsLanguagesPack.id, {
   supportsLocale: true,
 });
 const timezoneType = fieldType(standardsTimezonesPack.id, { key: "timezones", name: "Timezones", kind: "reference" });
+const e164CallingCodesType = fieldType(standardsTelephonyPack.id, {
+  key: "e164_country_calling_codes",
+  name: "E.164 country calling codes",
+  kind: "reference",
+  supportsCrosswalks: true,
+});
 const employeeBandType = fieldType(companyPack.id, { key: "employee_size_bands", name: "Employee Size Bands", supportsValidation: true });
 const revenueBandType = fieldType(companyPack.id, { key: "revenue_bands", name: "Revenue Bands", supportsValidation: true });
 const fundingStageType = fieldType(companyPack.id, { key: "funding_stages", name: "Funding Stages" });
@@ -194,9 +228,12 @@ const roleBasedType = fieldType(emailPack.id, { key: "role_based_local_parts", n
 export const fieldTypes: FieldType[] = [
   countriesType,
   subdivisionsType,
+  geoRegionGroupsType,
+  geoContinentsType,
   currenciesType,
   languagesType,
   timezoneType,
+  e164CallingCodesType,
   employeeBandType,
   revenueBandType,
   fundingStageType,
@@ -216,17 +253,138 @@ export const fieldTypes: FieldType[] = [
   roleBasedType,
 ];
 
+const geoCountryValues = geoBundle.countries.map((entry) =>
+  value(countriesType.id, entry.key, entry.label, (entry.metadata ?? {}) as Record<string, unknown>),
+);
+const geoSubdivisionValues = geoBundle.subdivisions.map((entry) =>
+  value(subdivisionsType.id, entry.key, entry.label, (entry.metadata ?? {}) as Record<string, unknown>),
+);
+const geoRegionGroupValues = geoBundle.region_groups.map((entry) =>
+  value(geoRegionGroupsType.id, entry.key, entry.label, (entry.metadata ?? {}) as Record<string, unknown>),
+);
+const geoContinentValues = (
+  (geoBundle as { continents?: Array<{ key: string; label: string; aliases?: string[]; metadata?: Record<string, unknown> }> })
+    .continents ?? []
+).map((entry) => value(geoContinentsType.id, entry.key, entry.label, (entry.metadata ?? {}) as Record<string, unknown>));
+const geoCallingCodeValues = (
+  (geoBundle as { calling_codes?: Array<{ key: string; label: string; aliases?: string[]; metadata?: Record<string, unknown> }> })
+    .calling_codes ?? []
+).map((entry) => value(e164CallingCodesType.id, entry.key, entry.label, (entry.metadata ?? {}) as Record<string, unknown>));
+
+const staticPacksForCrosswalks: SeedPack[] = [
+  {
+    key: "geo",
+    name: "Geo",
+    version: "1.0.0",
+    source: "geo-bundle",
+    fieldTypes: [
+      {
+        key: "countries",
+        name: "Countries",
+        values: geoBundle.countries as import("@/data/packs/types").SeedValue[],
+      },
+      {
+        key: "geo_continents",
+        name: "Geo continents",
+        values: (geoBundle as { continents: import("@/data/packs/types").SeedValue[] }).continents ?? [],
+      },
+      {
+        key: "geo_region_groups",
+        name: "Geo region groups",
+        values: geoBundle.region_groups as import("@/data/packs/types").SeedValue[],
+      },
+    ],
+  },
+  {
+    key: "standards_telephony",
+    name: "Telephony",
+    version: "1.0.0",
+    source: "geo-bundle",
+    fieldTypes: [
+      {
+        key: "e164_country_calling_codes",
+        name: "E.164 country calling codes",
+        values: (geoBundle as { calling_codes: import("@/data/packs/types").SeedValue[] }).calling_codes ?? [],
+      },
+    ],
+  },
+];
+
+const countryStandardSeeds = buildCountryStandardsCrosswalksFromPacks(staticPacksForCrosswalks);
+
+const extraCurrencyKeys = new Set<string>();
+const extraLangKeys = new Set<string>();
+const extraTzKeys = new Set<string>();
+for (const cw of countryStandardSeeds) {
+  if (cw.toFieldTypeKey === "currencies") extraCurrencyKeys.add(cw.toValueKey);
+  if (cw.toFieldTypeKey === "languages") extraLangKeys.add(cw.toValueKey);
+  if (cw.toFieldTypeKey === "timezones") extraTzKeys.add(cw.toValueKey);
+}
+const baseCurrencies = new Set(["eur", "usd"]);
+const baseLangs = new Set(["nl", "en"]);
+const baseTzs = new Set(["europe-amsterdam", "america-toronto", "utc"]);
+
+const countryDefaults = loadCountryDefaultsV2();
+const ianaByTzKey = new Map<string, string>();
+for (const row of Object.values(countryDefaults)) {
+  for (const tz of row.timezones ?? []) {
+    if (tz.iana) ianaByTzKey.set(ianaTimezoneValueKey(tz.iana), tz.iana);
+  }
+}
+
+const enLangNames = new Intl.DisplayNames(["en"], { type: "language" });
+
+function extraCurrencyFieldValues(): FieldValue[] {
+  const out: FieldValue[] = [];
+  for (const k of extraCurrencyKeys) {
+    if (baseCurrencies.has(k)) continue;
+    const code = k.toUpperCase();
+    out.push(value(currenciesType.id, k, code, { code, symbol: code, decimals: 2 }));
+  }
+  return out;
+}
+
+function extraLanguageFieldValues(): FieldValue[] {
+  const out: FieldValue[] = [];
+  for (const k of extraLangKeys) {
+    if (baseLangs.has(k)) continue;
+    const label = enLangNames.of(k) ?? k;
+    out.push(
+      value(languagesType.id, k, label, {
+        iso639_1: k.length === 2 ? k : null,
+        bcp47: k,
+      }),
+    );
+  }
+  return out;
+}
+
+function extraTimezoneFieldValues(): FieldValue[] {
+  const out: FieldValue[] = [];
+  for (const k of extraTzKeys) {
+    if (baseTzs.has(k)) continue;
+    const iana = ianaByTzKey.get(k) ?? k.replace(/-/g, "/");
+    out.push(value(timezoneType.id, k, iana, { iana, dst: false }));
+  }
+  return out;
+}
+
 export const fieldValues: FieldValue[] = [
-  value(countriesType.id, "netherlands", "Netherlands", { iso2: "NL", iso3: "NLD", numeric: "528", native_name: "Nederland", flag_emoji: "NL" }),
-  value(countriesType.id, "canada", "Canada", { iso2: "CA", iso3: "CAN", numeric: "124" }),
-  value(subdivisionsType.id, "nl-zuid-holland", "South Holland", { country_iso2: "NL", iso3166_2: "NL-ZH" }),
-  value(subdivisionsType.id, "nl-noord-holland", "North Holland", { country_iso2: "NL", iso3166_2: "NL-NH" }),
+  ...geoCountryValues,
+  ...geoSubdivisionValues,
+  ...geoRegionGroupValues,
+  ...geoContinentValues,
+  ...geoCallingCodeValues,
   value(currenciesType.id, "eur", "Euro", { code: "EUR", symbol: "EUR", decimals: 2 }),
   value(currenciesType.id, "usd", "US Dollar", { code: "USD", symbol: "$", decimals: 2 }),
+  ...extraCurrencyFieldValues(),
   value(languagesType.id, "nl", "Dutch", { iso639_1: "nl", native_name: "Nederlands" }),
   value(languagesType.id, "en", "English", { iso639_1: "en", native_name: "English" }),
+  ...extraLanguageFieldValues(),
+  value(timezoneType.id, "utc", "UTC", { iana: "UTC", dst: false }),
   value(timezoneType.id, "europe-amsterdam", "Europe/Amsterdam", { iana: "Europe/Amsterdam", dst: true }),
   value(timezoneType.id, "america-toronto", "America/Toronto", { iana: "America/Toronto", dst: true }),
+  ...extraTimezoneFieldValues(),
   value(employeeBandType.id, "1-10", "1-10"),
   value(employeeBandType.id, "11-50", "11-50"),
   value(employeeBandType.id, "51-200", "51-200"),
@@ -267,11 +425,61 @@ const getValue = (fieldTypeId: string, key: string): FieldValue => {
   return found;
 };
 
+function buildGeoAliasesFromBundle(): FieldAlias[] {
+  const rows: FieldAlias[] = [];
+  for (const c of geoBundle.countries) {
+    const vid = valueByKey.get(`${countriesType.id}:${c.key}`)?.id;
+    if (!vid) continue;
+    for (const a of c.aliases ?? []) {
+      const t = a.trim();
+      if (!t || normalizeText(t) === normalizeText(c.label) || normalizeText(t) === normalizeText(c.key)) continue;
+      rows.push(alias(countriesType.id, vid, t, 0.92));
+    }
+  }
+  for (const s of geoBundle.subdivisions) {
+    const vid = valueByKey.get(`${subdivisionsType.id}:${s.key}`)?.id;
+    if (!vid) continue;
+    for (const a of s.aliases ?? []) {
+      const t = a.trim();
+      if (!t || normalizeText(t) === normalizeText(s.label) || normalizeText(t) === normalizeText(s.key)) continue;
+      rows.push(alias(subdivisionsType.id, vid, t, 0.9));
+    }
+  }
+  return rows;
+}
+
+const typeIdByKey = new Map(fieldTypes.map((entry) => [entry.key, entry.id]));
+
+function materializeSeedCrosswalkRows(rows: SeedCrosswalk[]): FieldCrosswalk[] {
+  const out: FieldCrosswalk[] = [];
+  for (const cw of rows) {
+    const fromT = typeIdByKey.get(cw.fromFieldTypeKey);
+    const toT = typeIdByKey.get(cw.toFieldTypeKey);
+    if (!fromT || !toT) continue;
+    const fromV = valueByKey.get(`${fromT}:${cw.fromValueKey}`);
+    const toV = valueByKey.get(`${toT}:${cw.toValueKey}`);
+    if (!fromV || !toV) continue;
+    out.push({
+      id: crypto.randomUUID(),
+      fromFieldTypeId: fromT,
+      fromValueId: fromV.id,
+      toFieldTypeId: toT,
+      toValueId: toV.id,
+      crosswalkType: cw.crosswalkType,
+      confidence: cw.confidence,
+      source: cw.source ?? "seed",
+      metadata: cw.metadata ?? {},
+    });
+  }
+  return out;
+}
+
+function materializeGeoRegionCrosswalks(): FieldCrosswalk[] {
+  return materializeSeedCrosswalkRows(buildGeoRegionGroupCrosswalksFromPacks());
+}
+
 export const fieldAliases: FieldAlias[] = [
-  alias(countriesType.id, getValue(countriesType.id, "netherlands").id, "NL"),
-  alias(countriesType.id, getValue(countriesType.id, "netherlands").id, "Nederland"),
-  alias(countriesType.id, getValue(countriesType.id, "netherlands").id, "Holland", 0.74),
-  alias(subdivisionsType.id, getValue(subdivisionsType.id, "nl-zuid-holland").id, "Zuid Holland"),
+  ...buildGeoAliasesFromBundle(),
   alias(currenciesType.id, getValue(currenciesType.id, "eur").id, "€"),
   alias(languagesType.id, getValue(languagesType.id, "nl").id, "NL"),
   alias(languagesType.id, getValue(languagesType.id, "en").id, "English", 0.95),
@@ -287,28 +495,10 @@ export const fieldAliases: FieldAlias[] = [
 ];
 
 export const fieldCrosswalks: FieldCrosswalk[] = [
-  {
-    id: crypto.randomUUID(),
-    fromFieldTypeId: countriesType.id,
-    fromValueId: getValue(countriesType.id, "netherlands").id,
-    toFieldTypeId: currenciesType.id,
-    toValueId: getValue(currenciesType.id, "eur").id,
-    crosswalkType: "country_default_currency",
-    confidence: 0.99,
-    source: "seed",
-    metadata: {},
-  },
-  {
-    id: crypto.randomUUID(),
-    fromFieldTypeId: countriesType.id,
-    fromValueId: getValue(countriesType.id, "netherlands").id,
-    toFieldTypeId: languagesType.id,
-    toValueId: getValue(languagesType.id, "nl").id,
-    crosswalkType: "country_official_language",
-    confidence: 0.99,
-    source: "seed",
-    metadata: {},
-  },
+  ...materializeSeedCrosswalkRows(countryStandardSeeds),
+  ...materializeSeedCrosswalkRows(buildGeoContinentCrosswalksFromPacks(staticPacksForCrosswalks)),
+  ...materializeSeedCrosswalkRows(buildCallingCodeCrosswalksFromPacks(staticPacksForCrosswalks)),
+  ...materializeGeoRegionCrosswalks(),
   {
     id: crypto.randomUUID(),
     fromFieldTypeId: normalizedTitleType.id,

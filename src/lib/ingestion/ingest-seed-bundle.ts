@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SeedPack } from "@/data/packs/types";
 import { ingestPack } from "@/lib/ingestion/ingest-pack";
-import type { seedCrosswalks } from "@/data/seed-crosswalks";
+import type { SeedCrosswalk } from "@/data/seed-crosswalks";
 
 export function mergePacks(packs: SeedPack[]): Map<string, SeedPack> {
   const map = new Map<string, SeedPack>();
@@ -21,11 +21,9 @@ export function mergePacks(packs: SeedPack[]): Map<string, SeedPack> {
   return map;
 }
 
-type CrosswalkSeed = (typeof seedCrosswalks)[number];
-
 export async function ingestCrosswalksFromSeed(
   admin: SupabaseClient,
-  crosswalks: CrosswalkSeed[],
+  crosswalks: SeedCrosswalk[],
   source = "seed-crosswalks",
   options?: { strict?: boolean },
 ): Promise<{
@@ -75,7 +73,7 @@ export async function ingestCrosswalksFromSeed(
         crosswalk_type: cw.crosswalkType,
         confidence: cw.confidence,
         source: cw.source ?? source,
-        metadata: {},
+        metadata: cw.metadata ?? {},
       },
       { onConflict: "from_value_id,to_value_id,crosswalk_type" },
     );

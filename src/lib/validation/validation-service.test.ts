@@ -11,6 +11,15 @@ describe("validation service", () => {
     expect(result.valid).toBe(true);
   });
 
+  it("validates german postal code with country context", () => {
+    const result = validateFieldValue({
+      field_key: "postal_codes",
+      value: "10115",
+      context: { country: "DE" },
+    });
+    expect(result.valid).toBe(true);
+  });
+
   it("fails invalid utm keys", () => {
     const result = validateFieldValue({
       field_key: "utm_parameters",

@@ -1,0 +1,25 @@
+{
+  "eu": {
+    "group_kind": "legal_treaty",
+    "iso2": ["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE"]
+  },
+  "eea": {
+    "group_kind": "legal_treaty",
+    "iso2": ["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE", "IS", "LI", "NO"]
+  },
+  "dach": { "group_kind": "informal", "iso2": ["DE", "AT", "CH"] },
+  "benelux": { "group_kind": "informal", "iso2": ["BE", "NL", "LU"] },
+  "asean": {
+    "group_kind": "intergovernmental",
+    "iso2": ["BN", "KH", "ID", "LA", "MY", "MM", "PH", "SG", "TH", "VN"]
+  },
+  "oecd": {
+    "group_kind": "intergovernmental",
+    "iso2": ["AU", "AT", "BE", "CA", "CL", "CO", "CR", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IS", "IE", "IL", "IT", "JP", "KR", "LV", "LT", "LU", "MX", "NL", "NZ", "NO", "PL", "PT", "SK", "SI", "ES", "SE", "CH", "TR", "GB", "US"]
+  },
+  "g7": { "group_kind": "intergovernmental", "iso2": ["CA", "FR", "DE", "IT", "JP", "GB", "US"] },
+  "g20": {
+    "group_kind": "intergovernmental",
+    "iso2": ["AR", "AU", "BR", "CA", "CN", "FR", "DE", "IN", "ID", "IT", "JP", "KR", "MX", "RU", "SA", "ZA", "TR", "GB", "US"]
+  }
+}

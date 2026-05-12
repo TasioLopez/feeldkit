@@ -1,0 +1,302 @@
+{
+  "NL": {
+    "admin1_label_en": "province",
+    "admin1_label_native": "provincie",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "BE": {
+    "admin1_label_en": "region",
+    "admin1_label_native": "gewest",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "DE": {
+    "admin1_label_en": "state",
+    "admin1_label_native": "Land",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "AT": {
+    "admin1_label_en": "state",
+    "admin1_label_native": "Bundesland",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "CH": {
+    "admin1_label_en": "canton",
+    "admin1_label_native": "Kanton",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "FR": {
+    "admin1_label_en": "region",
+    "admin1_label_native": "région",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "ES": {
+    "admin1_label_en": "autonomous community",
+    "admin1_label_native": "comunidad autónoma",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "IT": {
+    "admin1_label_en": "region",
+    "admin1_label_native": "regione",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "GB": {
+    "admin1_label_en": "constituent country / nation",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "US": {
+    "admin1_label_en": "state",
+    "admin1_label_native": "state",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "CA": {
+    "admin1_label_en": "province / territory",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "AU": {
+    "admin1_label_en": "state / territory",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "JP": {
+    "admin1_label_en": "prefecture",
+    "admin1_label_native": "都道府県",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "IN": {
+    "admin1_label_en": "state / union territory",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "BR": {
+    "admin1_label_en": "state",
+    "admin1_label_native": "estado",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "MX": {
+    "admin1_label_en": "state",
+    "admin1_label_native": "estado",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "SE": {
+    "admin1_label_en": "county",
+    "admin1_label_native": "län",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "NO": {
+    "admin1_label_en": "county",
+    "admin1_label_native": "fylke",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "DK": {
+    "admin1_label_en": "region",
+    "admin1_label_native": "region",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "FI": {
+    "admin1_label_en": "region",
+    "admin1_label_native": "maakunta",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "PL": {
+    "admin1_label_en": "voivodeship",
+    "admin1_label_native": "województwo",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "PT": {
+    "admin1_label_en": "district / autonomous region",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "IE": {
+    "admin1_label_en": "province",
+    "admin1_label_native": "cúige",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "GR": {
+    "admin1_label_en": "administrative region",
+    "admin1_label_native": "περιφέρεια",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "CZ": {
+    "admin1_label_en": "region",
+    "admin1_label_native": "kraj",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "HU": {
+    "admin1_label_en": "county",
+    "admin1_label_native": "megye",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "RO": {
+    "admin1_label_en": "county",
+    "admin1_label_native": "județ",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "KR": {
+    "admin1_label_en": "province / metropolitan city",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "CN": {
+    "admin1_label_en": "province / autonomous region / municipality",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "RU": {
+    "admin1_label_en": "federal subject",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "ZA": {
+    "admin1_label_en": "province",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "AR": {
+    "admin1_label_en": "province",
+    "admin1_label_native": "provincia",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "TR": {
+    "admin1_label_en": "province",
+    "admin1_label_native": "il",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "SA": {
+    "admin1_label_en": "region",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "ID": {
+    "admin1_label_en": "province",
+    "admin1_label_native": "provinsi",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "TH": {
+    "admin1_label_en": "province",
+    "admin1_label_native": "จังหวัด",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "VN": {
+    "admin1_label_en": "province / municipality",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "MY": {
+    "admin1_label_en": "state / federal territory",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "PH": {
+    "admin1_label_en": "region",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "SG": {
+    "admin1_label_en": "district",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "NZ": {
+    "admin1_label_en": "region",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "IL": {
+    "admin1_label_en": "district",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "CL": {
+    "admin1_label_en": "region",
+    "admin1_label_native": "región",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "CO": {
+    "admin1_label_en": "department",
+    "admin1_label_native": "departamento",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "IS": {
+    "admin1_label_en": "region",
+    "admin1_label_native": "landsvæði",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "LI": {
+    "admin1_label_en": "municipality",
+    "admin1_label_native": "Gemeinde",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "LU": {
+    "admin1_label_en": "canton",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "EE": {
+    "admin1_label_en": "county",
+    "admin1_label_native": "maakond",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "LV": {
+    "admin1_label_en": "municipality",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "LT": {
+    "admin1_label_en": "county",
+    "admin1_label_native": "apskritis",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "SK": {
+    "admin1_label_en": "region",
+    "admin1_label_native": "kraj",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "SI": {
+    "admin1_label_en": "statistical region",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "HR": {
+    "admin1_label_en": "county",
+    "admin1_label_native": "županija",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "BG": {
+    "admin1_label_en": "region",
+    "admin1_label_native": "област",
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "CY": {
+    "admin1_label_en": "district",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "MT": {
+    "admin1_label_en": "region",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "BN": {
+    "admin1_label_en": "district",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "KH": {
+    "admin1_label_en": "province",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "LA": {
+    "admin1_label_en": "province",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  },
+  "MM": {
+    "admin1_label_en": "region / state",
+    "admin1_label_native": null,
+    "admin1_label_key": "administrative_area_level_1"
+  }
+}

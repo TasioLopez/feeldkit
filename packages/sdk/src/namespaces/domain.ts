@@ -15,8 +15,13 @@ export class GeoNamespace {
     return this.transport.request("GET", "/api/v1/geo/countries");
   }
 
+  /** Returns `{ country, crosswalks }` where crosswalks are resolved targets (currencies, languages, region groups, etc.). */
   country(iso2: string): Promise<unknown> {
     return this.transport.request("GET", `/api/v1/geo/countries/${encodeURIComponent(iso2)}`);
+  }
+
+  regionGroups(): Promise<unknown> {
+    return this.transport.request("GET", "/api/v1/geo/region-groups");
   }
 
   subdivisions(country: string): Promise<unknown> {
@@ -37,6 +42,10 @@ export class StandardsNamespace {
 
   languages(): Promise<unknown> {
     return this.transport.request("GET", "/api/v1/standards/languages");
+  }
+
+  callingCodes(): Promise<unknown> {
+    return this.transport.request("GET", "/api/v1/standards/calling-codes");
   }
 }
 

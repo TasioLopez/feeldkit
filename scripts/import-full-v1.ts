@@ -2,8 +2,12 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { ingestCrosswalksFromSeed, ingestSeedBundle, mergePacks } from "../src/lib/ingestion/ingest-seed-bundle";
+import { buildCallingCodeCrosswalksFromPacks } from "../src/lib/ingestion/build-calling-code-crosswalks";
 import { buildCountryStandardsCrosswalksFromPacks } from "../src/lib/ingestion/build-country-standards-crosswalks";
+import { buildGeoContinentCrosswalksFromPacks } from "../src/lib/ingestion/build-geo-continent-crosswalks";
+import { buildGeoRegionGroupCrosswalksFromPacks } from "../src/lib/ingestion/build-geo-region-group-crosswalks";
 import { seedCrosswalks } from "../src/data/seed-crosswalks";
+import type { SeedPack } from "../src/data/packs/types";
 import { FEELDKIT_CANONICAL_REF_V1 } from "../src/lib/domain/canonical-ref";
 import { buildFullV1Packs } from "./sources";
 import { buildIndustryConceptGraphWithDiagnostics } from "./sources/industry-concept-graph";
@@ -146,10 +150,84 @@ function evaluatePreflight(params: {
   return checks;
 }
 
+function evaluateStandardsPreflight(mergedPacks: Map<string, SeedPack>): PreflightCheck[] {
+  const telephony = mergedPacks.get("standards_telephony");
+  const dialCount = telephony?.fieldTypes.find((ft) => ft.key === "e164_country_calling_codes")?.values.length ?? 0;
+  const countryCrosswalks = buildCallingCodeCrosswalksFromPacks([...mergedPacks.values()]);
+  const geo = mergedPacks.get("geo");
+  const countryCount = geo?.fieldTypes.find((ft) => ft.key === "countries")?.values.length ?? 0;
+  const continentCw = buildGeoContinentCrosswalksFromPacks([...mergedPacks.values()]);
+  return [
+    {
+      key: "standards_telephony_calling_codes",
+      ok: dialCount >= 200,
+      expected: 200,
+      actual: dialCount,
+      reason: dialCount < 200 ? "e164 calling code prefix list incomplete" : undefined,
+    },
+    {
+      key: "standards_telephony_country_coverage_pct",
+      ok: countryCount === 0 || countryCrosswalks.length / countryCount >= 0.92,
+      expected: 92,
+      actual: countryCount === 0 ? 100 : Math.round((countryCrosswalks.length / countryCount) * 10000) / 100,
+      reason:
+        countryCount > 0 && countryCrosswalks.length / countryCount < 0.92
+          ? "many countries missing calling-code crosswalk (dial map vs ISO2)"
+          : undefined,
+    },
+    {
+      key: "geo_continent_crosswalks",
+      ok: continentCw.length >= 200,
+      expected: 200,
+      actual: continentCw.length,
+      reason: continentCw.length < 200 ? "continent crosswalks should cover most countries with UN region" : undefined,
+    },
+  ];
+}
+
+function evaluateGeoPreflight(mergedPacks: Map<string, SeedPack>): PreflightCheck[] {
+  const geo = mergedPacks.get("geo");
+  const countryCount = geo?.fieldTypes.find((ft) => ft.key === "countries")?.values.length ?? 0;
+  const subCount = geo?.fieldTypes.find((ft) => ft.key === "subdivisions")?.values.length ?? 0;
+  const rgCount = geo?.fieldTypes.find((ft) => ft.key === "geo_region_groups")?.values.length ?? 0;
+  const continentCount = geo?.fieldTypes.find((ft) => ft.key === "geo_continents")?.values.length ?? 0;
+  return [
+    {
+      key: "geo_countries",
+      ok: countryCount >= 200,
+      expected: 200,
+      actual: countryCount,
+      reason: countryCount < 200 ? "countries snapshot or network fetch incomplete" : undefined,
+    },
+    {
+      key: "geo_subdivisions",
+      ok: subCount >= 5000,
+      expected: 5000,
+      actual: subCount,
+      reason: subCount < 5000 ? "states.csv snapshot incomplete" : undefined,
+    },
+    {
+      key: "geo_region_groups",
+      ok: rgCount >= 8,
+      expected: 8,
+      actual: rgCount,
+      reason: rgCount < 8 ? "region group seed incomplete" : undefined,
+    },
+    {
+      key: "geo_continents",
+      ok: continentCount >= 5,
+      expected: 5,
+      actual: continentCount,
+      reason: continentCount < 5 ? "continent seed incomplete" : undefined,
+    },
+  ];
+}
+
 async function run() {
   const args = parseArgs();
   process.env.FEELDKIT_SOURCE_FORCE_SNAPSHOTS = args.forceSnapshots ? "1" : "0";
   const packs = await buildFullV1Packs();
+  const mergedPacks = mergePacks(packs);
   const industryGraphResult = await buildIndustryConceptGraphWithDiagnostics({ forceSnapshots: args.forceSnapshots });
   const industryGraph = industryGraphResult.graph;
   const sourceDiagnostics: SourceDiagnostic[] = [
@@ -188,13 +266,17 @@ async function run() {
       .map((edge) => edge.fromCode),
   ).size;
   const linkedInNaicsCoveragePct = linkedinCodes === 0 ? 0 : Math.round((linkedinMappedToNaics / linkedinCodes) * 10000) / 100;
-  const preflightChecks = evaluatePreflight({
-    sourceDiagnostics,
-    systemCounts,
-    linkedinNaicsEdges: industryGraph.edges.filter(
-      (edge) => edge.fromSystem === "linkedin" && edge.toSystem === "naics" && edge.source === "linkedin_industry_codes_v2_naics",
-    ).length,
-  });
+  const preflightChecks = [
+    ...evaluatePreflight({
+      sourceDiagnostics,
+      systemCounts,
+      linkedinNaicsEdges: industryGraph.edges.filter(
+        (edge) => edge.fromSystem === "linkedin" && edge.toSystem === "naics" && edge.source === "linkedin_industry_codes_v2_naics",
+      ).length,
+    }),
+    ...evaluateGeoPreflight(mergedPacks),
+    ...evaluateStandardsPreflight(mergedPacks),
+  ];
   const preflightFailed = preflightChecks.some((check) => !check.ok);
   const preflightSummary = {
     strict_mode: true,
@@ -264,9 +346,18 @@ async function run() {
   });
   const mirroredIndustryCrosswalks = await mirrorIndustryConceptEdgesToFieldCrosswalks(admin, industryGraph, { strict: true });
   const countryCrosswalkSeeds = buildCountryStandardsCrosswalksFromPacks(packs);
+  const geoRegionCrosswalkSeeds = buildGeoRegionGroupCrosswalksFromPacks();
+  const geoContinentCrosswalkSeeds = buildGeoContinentCrosswalksFromPacks(packs);
+  const callingCodeCrosswalkSeeds = buildCallingCodeCrosswalksFromPacks(packs);
   const crosswalkSummary = await ingestCrosswalksFromSeed(
     admin,
-    [...seedCrosswalks, ...countryCrosswalkSeeds],
+    [
+      ...seedCrosswalks,
+      ...countryCrosswalkSeeds,
+      ...geoRegionCrosswalkSeeds,
+      ...geoContinentCrosswalkSeeds,
+      ...callingCodeCrosswalkSeeds,
+    ],
     "full-v1-crosswalks",
     { strict: true },
   );

@@ -1,10 +1,16 @@
 import { z } from "zod";
+import { POSTAL_PATTERN_SOURCE } from "@/data/generated/postal-patterns";
 import type { ValidationResult } from "@/lib/domain/types";
 
-const postalByCountry: Record<string, RegExp> = {
-  NL: /^[1-9][0-9]{3}\s?[A-Z]{2}$/i,
-  CA: /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i,
-};
+function postalRegexFor(country: string): RegExp | null {
+  const pattern = POSTAL_PATTERN_SOURCE[country];
+  if (!pattern) return null;
+  try {
+    return new RegExp(pattern, "i");
+  } catch {
+    return null;
+  }
+}
 
 const socialLinkedInRegex = /^https:\/\/(www\.)?linkedin\.com\/(in|company)\/[a-zA-Z0-9-_%]+\/?$/;
 const utmKeyRegex = /^utm_(source|medium|campaign|term|content)$/;
@@ -21,9 +27,12 @@ export function validateFieldValue(input: z.infer<typeof validatePayloadSchema>)
 
   if (field_key === "postal_codes") {
     const country = String(context?.country ?? "").toUpperCase();
-    if (!country || !postalByCountry[country]) {
+    const rx = country ? postalRegexFor(country) : null;
+    if (!country) {
       errors.push("country context is required for postal_codes");
-    } else if (!postalByCountry[country].test(value.trim())) {
+    } else if (!rx) {
+      errors.push(`postal format not configured for ${country}`);
+    } else if (!rx.test(value.trim())) {
       errors.push(`postal code does not match ${country} format`);
     }
   }
